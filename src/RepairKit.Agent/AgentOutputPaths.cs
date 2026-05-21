@@ -66,4 +66,41 @@ public static class AgentOutputPaths
     {
         return Path.Combine(runFolder, "approval-decision.json");
     }
+
+    public static string GetBackupsFolder(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "backups");
+    }
+
+    public static string GetBackupFile(string repoRoot, string runId, string relativePath)
+    {
+        return Path.Combine(
+            GetBackupsFolder(repoRoot, runId),
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    public static string GetValidationArtifactsFolder(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "validation-bin");
+    }
+
+    public static string GetValidationBuildOutputFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "validation-build-output.txt");
+    }
+
+    public static string GetValidationTestOutputFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "validation-test-output.txt");
+    }
+
+    public static string GetPatchApplicationFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "patch-application.json");
+    }
+
+    public static string GetPatchErrorFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "patch-error.txt");
+    }
 }

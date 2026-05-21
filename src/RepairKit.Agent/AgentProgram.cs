@@ -64,6 +64,7 @@ public static class AgentProgram
 
             RepairPlanResult? repairPlanResult = null;
             RepairApprovalDecision? approvalDecision = null;
+            PatchApplicationResult? patchApplicationResult = null;
             string? aiError = null;
 
             if (!summary.OverallPassed)
@@ -90,6 +91,17 @@ public static class AgentProgram
                             repairPlanResult.Plan,
                             runOptions,
                             outputFolder);
+
+                        if (approvalDecision is not null &&
+                            approvalDecision.Approved &&
+                            !runOptions.NoApply)
+                        {
+                            var patchApplier = new PatchApplier();
+                            patchApplicationResult = await patchApplier.ApplyAsync(
+                                repoRoot,
+                                runId,
+                                CancellationToken.None);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -107,7 +119,13 @@ public static class AgentProgram
                 runOptions,
                 repairPlanResult,
                 approvalDecision,
+                patchApplicationResult,
                 aiError);
+
+            if (patchApplicationResult is not null)
+            {
+                return patchApplicationResult.ValidationOverallPassed ? 0 : 1;
+            }
 
             if (!summary.BuildPassed)
             {
@@ -137,6 +155,7 @@ public static class AgentProgram
         AgentRunOptions runOptions,
         RepairPlanResult? repairPlanResult,
         RepairApprovalDecision? approvalDecision,
+        PatchApplicationResult? patchApplicationResult,
         string? aiError)
     {
         Console.WriteLine();
@@ -186,7 +205,38 @@ public static class AgentProgram
                 Console.WriteLine($"Approved: {approvalDecision.Approved}");
             }
 
-            Console.WriteLine("Next step: Patch application is not implemented until Phase 7.");
+            if (runOptions.NoApply && approvalDecision?.Approved == true)
+            {
+                Console.WriteLine("Patch Applied: false (--no-apply)");
+            }
+
+            if (patchApplicationResult is not null)
+            {
+                var patchApplicationPath = AgentOutputPaths.GetPatchApplicationFile(
+                    Path.Combine(
+                        summary.WorkingDirectory,
+                        AgentOutputPaths.GetRelativeRunFolder(summary.RunId)));
+
+                Console.WriteLine($"Patch Applied: {patchApplicationResult.Applied}");
+                Console.WriteLine("Changed files:");
+                foreach (var changedFile in patchApplicationResult.ChangedFiles)
+                {
+                    Console.WriteLine($"- {changedFile}");
+                }
+
+                Console.WriteLine("Backup files:");
+                foreach (var backupFile in patchApplicationResult.BackupFiles)
+                {
+                    Console.WriteLine($"- {backupFile}");
+                }
+
+                Console.WriteLine($"Validation Build Passed: {patchApplicationResult.ValidationBuildPassed}");
+                Console.WriteLine($"Validation Tests Passed: {patchApplicationResult.ValidationTestsPassed}");
+                Console.WriteLine($"Validation Overall Passed: {patchApplicationResult.ValidationOverallPassed}");
+                Console.WriteLine($"Patch Application Result: {patchApplicationPath}");
+            }
+
+            Console.WriteLine("Next step: Review generated artifacts before committing changes.");
         }
     }
 }

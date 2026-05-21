@@ -3,10 +3,12 @@ namespace RepairKit.Agent;
 public sealed class RepairApprovalService
 {
     private readonly IUserPrompt _userPrompt;
+    private readonly IUserOutput _userOutput;
 
-    public RepairApprovalService(IUserPrompt userPrompt)
+    public RepairApprovalService(IUserPrompt userPrompt, IUserOutput? userOutput = null)
     {
         _userPrompt = userPrompt;
+        _userOutput = userOutput ?? new ConsoleUserOutput();
     }
 
     public async Task<RepairApprovalDecision?> RequestApprovalAsync(
@@ -18,7 +20,7 @@ public sealed class RepairApprovalService
     {
         if (options.PlanOnly)
         {
-            Console.WriteLine("Plan-only mode skipped approval.");
+            _userOutput.WriteLine("Plan-only mode skipped approval.");
             return null;
         }
 
@@ -76,43 +78,43 @@ public sealed class RepairApprovalService
             reason);
     }
 
-    private static void PrintApprovalPrompt(RepairPlan plan)
+    private void PrintApprovalPrompt(RepairPlan plan)
     {
-        Console.WriteLine();
-        Console.WriteLine("AI repair plan generated.");
-        Console.WriteLine();
-        Console.WriteLine("Summary:");
-        Console.WriteLine(plan.Summary);
-        Console.WriteLine();
-        Console.WriteLine("Risk Level:");
-        Console.WriteLine(plan.RiskLevel);
-        Console.WriteLine();
-        Console.WriteLine("Target Files:");
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("AI repair plan generated.");
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("Summary:");
+        _userOutput.WriteLine(plan.Summary);
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("Risk Level:");
+        _userOutput.WriteLine(plan.RiskLevel);
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("Target Files:");
         foreach (var targetFile in plan.TargetFiles)
         {
-            Console.WriteLine($"- {targetFile}");
+            _userOutput.WriteLine($"- {targetFile}");
         }
 
-        Console.WriteLine();
-        Console.WriteLine("Proposed Changes:");
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("Proposed Changes:");
         for (var i = 0; i < plan.Changes.Count; i++)
         {
             var change = plan.Changes[i];
-            Console.WriteLine($"{i + 1}. {change.FilePath}");
-            Console.WriteLine($"   Reason: {change.Reason}");
+            _userOutput.WriteLine($"{i + 1}. {change.FilePath}");
+            _userOutput.WriteLine($"   Reason: {change.Reason}");
         }
 
-        Console.WriteLine();
-        Console.WriteLine("Validation Commands:");
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("Validation Commands:");
         foreach (var command in plan.ValidationCommands)
         {
-            Console.WriteLine($"- {command}");
+            _userOutput.WriteLine($"- {command}");
         }
 
-        Console.WriteLine();
-        Console.WriteLine("To approve this repair for a future patch step, type:");
-        Console.WriteLine("APPLY");
-        Console.WriteLine();
-        Console.WriteLine("Any other input will reject the repair.");
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("To approve this repair for a future patch step, type:");
+        _userOutput.WriteLine("APPLY");
+        _userOutput.WriteLine();
+        _userOutput.WriteLine("Any other input will reject the repair.");
     }
 }

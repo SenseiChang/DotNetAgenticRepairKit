@@ -60,13 +60,19 @@ When a build or test run fails, the agent also writes deterministic repair-plann
 - `context-packet.md`
 - `context-metadata.json`
 
-By default, failed runs send the context packet to OpenRouter and write a plan-only AI repair plan. After a valid plan is generated, Phase 6 adds a human approval gate. It still does not apply patches or modify source files.
+By default, failed runs send the context packet to OpenRouter and write a plan-only AI repair plan. After a valid plan is generated, the agent requires approval before applying full-file replacements from `repair-plan.json`.
 
 - `model-request.json`
 - `model-response.raw.txt`
 - `repair-plan.json`
 - `approval-decision.json` after an approval decision
+- `patch-application.json` after patch application
+- `validation-build-output.txt`
+- `validation-test-output.txt`
 - `ai-error.txt` if AI planning fails
+- `patch-error.txt` if patch application fails
+
+Applied changes are backed up under `.agent\runs\<runId>\backups\` before any source file is modified. After patching, the agent runs `dotnet build --no-incremental` and `dotnet test --no-build` again from an isolated validation output folder.
 
 Environment variables:
 
@@ -121,13 +127,42 @@ Auto-approve only low-risk plans:
 dotnet run --project src\RepairKit.Agent --approve-plan
 ```
 
+Plan and approve without applying:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --no-apply
+```
+
 Force manual approval even when `--approve-plan` is present:
 
 ```cmd
 dotnet run --project src\RepairKit.Agent --require-approval
 ```
 
-Phase 6 can call OpenRouter, write `repair-plan.json`, and write `approval-decision.json`. Repair selection and patch application are reserved for Phase 7.
+Full repair demo:
+
+```cmd
+call set-agent-env.local.cmd
+scripts\introduce-critical-sla-bug.cmd
+dotnet run --project src\RepairKit.Agent
+```
+
+Then type:
+
+```cmd
+APPLY
+```
+
+Expected result:
+
+- `Patch Applied: true`
+- `Validation Overall Passed: true`
+
+Then run:
+
+```cmd
+dotnet test
+```
 
 ## Documentation
 

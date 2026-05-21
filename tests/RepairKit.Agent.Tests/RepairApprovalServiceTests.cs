@@ -9,12 +9,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     [Fact]
     public async Task ManualApplyProducesApprovedTrue()
     {
-        var service = new RepairApprovalService(new FakeUserPrompt("APPLY"));
+        var service = new RepairApprovalService(new FakeUserPrompt("APPLY"), new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("low"),
-            new AgentRunOptions(false, false, false, true),
+            new AgentRunOptions(false, false, false, true, false),
             _runFolder);
 
         Assert.NotNull(decision);
@@ -25,12 +25,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     [Fact]
     public async Task NonApplyInputProducesApprovedFalse()
     {
-        var service = new RepairApprovalService(new FakeUserPrompt("no"));
+        var service = new RepairApprovalService(new FakeUserPrompt("no"), new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("low"),
-            new AgentRunOptions(false, false, false, true),
+            new AgentRunOptions(false, false, false, true, false),
             _runFolder);
 
         Assert.NotNull(decision);
@@ -42,12 +42,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     public async Task ApprovePlanAutoApprovesLowRisk()
     {
         var prompt = new FakeUserPrompt("no");
-        var service = new RepairApprovalService(prompt);
+        var service = new RepairApprovalService(prompt, new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("low"),
-            new AgentRunOptions(false, false, true, false),
+            new AgentRunOptions(false, false, true, false, false),
             _runFolder);
 
         Assert.NotNull(decision);
@@ -60,12 +60,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     public async Task ApprovePlanDoesNotAutoApproveMediumRisk()
     {
         var prompt = new FakeUserPrompt("no");
-        var service = new RepairApprovalService(prompt);
+        var service = new RepairApprovalService(prompt, new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("medium"),
-            new AgentRunOptions(false, false, true, false),
+            new AgentRunOptions(false, false, true, false, false),
             _runFolder);
 
         Assert.NotNull(decision);
@@ -77,12 +77,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     public async Task RequireApprovalOverridesApprovePlan()
     {
         var prompt = new FakeUserPrompt("no");
-        var service = new RepairApprovalService(prompt);
+        var service = new RepairApprovalService(prompt, new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("low"),
-            new AgentRunOptions(false, false, true, true),
+            new AgentRunOptions(false, false, true, true, false),
             _runFolder);
 
         Assert.NotNull(decision);
@@ -93,12 +93,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     [Fact]
     public async Task PlanOnlySkipsApproval()
     {
-        var service = new RepairApprovalService(new FakeUserPrompt("APPLY"));
+        var service = new RepairApprovalService(new FakeUserPrompt("APPLY"), new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("low"),
-            new AgentRunOptions(false, true, false, false),
+            new AgentRunOptions(false, true, false, false, false),
             _runFolder);
 
         Assert.Null(decision);
@@ -108,12 +108,12 @@ public sealed class RepairApprovalServiceTests : IDisposable
     [Fact]
     public async Task ApprovalDecisionIncludesTargetFilesAndChangeCount()
     {
-        var service = new RepairApprovalService(new FakeUserPrompt("APPLY"));
+        var service = new RepairApprovalService(new FakeUserPrompt("APPLY"), new NullUserOutput());
 
         var decision = await service.RequestApprovalAsync(
             "20260521-120000",
             CreatePlan("low"),
-            new AgentRunOptions(false, false, false, true),
+            new AgentRunOptions(false, false, false, true, false),
             _runFolder);
 
         Assert.NotNull(decision);
@@ -162,4 +162,3 @@ public sealed class RepairApprovalServiceTests : IDisposable
         }
     }
 }
-

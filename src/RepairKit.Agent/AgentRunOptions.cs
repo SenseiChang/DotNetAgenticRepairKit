@@ -4,7 +4,8 @@ public sealed record AgentRunOptions(
     bool NoAi,
     bool PlanOnly,
     bool ApprovePlan,
-    bool RequireApproval)
+    bool RequireApproval,
+    bool NoApply)
 {
     public static AgentRunOptions Parse(string[] args)
     {
@@ -22,7 +23,9 @@ public sealed record AgentRunOptions(
         var requireApproval = args.Any(arg =>
             string.Equals(arg, "--require-approval", StringComparison.OrdinalIgnoreCase));
 
-        return new AgentRunOptions(noAi, planOnly, approvePlan, requireApproval);
+        var noApply = args.Any(arg =>
+            string.Equals(arg, "--no-apply", StringComparison.OrdinalIgnoreCase));
+
+        return new AgentRunOptions(noAi, planOnly, approvePlan, requireApproval, noApply);
     }
 }
-
