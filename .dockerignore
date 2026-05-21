@@ -1,0 +1,12 @@
+.git
+.vs
+bin
+obj
+.agent/runs
+.agent/history.jsonl
+set-agent-env.local.cmd
+*.local.cmd
+TestResults
+test-results
+*.user
+*.suo
