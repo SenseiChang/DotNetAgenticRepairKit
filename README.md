@@ -45,6 +45,24 @@ Run the agent:
 dotnet run --project src\RepairKit.Agent
 ```
 
+## Agent Runner v1
+
+The current agent runner is deterministic and does not call any AI services. It first runs `dotnet build --no-incremental`, then runs `dotnet test --no-build` only if the build succeeds. This avoids stale incremental build output when controlled repair scenarios overwrite source files.
+
+Each run writes structured output under `.agent\runs\<runId>\`:
+
+- `build-output.txt`
+- `test-output.txt`
+- `run-summary.json`
+
+Run it from the repository root:
+
+```cmd
+dotnet run --project src\RepairKit.Agent
+```
+
+The agent currently only builds, runs tests, and records output. AI planning, repair selection, and patch application are reserved for later phases.
+
 ## Documentation
 
 - `docs/architecture.md`

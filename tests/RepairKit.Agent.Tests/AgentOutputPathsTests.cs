@@ -1,0 +1,40 @@
+using RepairKit.Agent;
+
+namespace RepairKit.Agent.Tests;
+
+public sealed class AgentOutputPathsTests
+{
+    [Fact]
+    public void BuildsExpectedRunFolderPath()
+    {
+        var repoRoot = Path.Combine("C:", "work", "repo");
+        var runId = "20260520-223500";
+
+        var path = AgentOutputPaths.GetRunFolder(repoRoot, runId);
+
+        Assert.Equal(Path.Combine(repoRoot, ".agent", "runs", runId), path);
+    }
+
+    [Fact]
+    public void BuildsExpectedOutputFilePaths()
+    {
+        var repoRoot = Path.Combine("C:", "work", "repo");
+        var runId = "20260520-223500";
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "runs", runId, "build-output.txt"),
+            AgentOutputPaths.GetBuildOutputFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "runs", runId, "build-bin"),
+            AgentOutputPaths.GetBuildArtifactsFolder(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "runs", runId, "test-output.txt"),
+            AgentOutputPaths.GetTestOutputFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "runs", runId, "run-summary.json"),
+            AgentOutputPaths.GetRunSummaryFile(repoRoot, runId));
+    }
+}

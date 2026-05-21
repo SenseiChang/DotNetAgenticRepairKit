@@ -12,9 +12,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+copy /B "src\RepairKit.Core\Services\TicketPriorityService.cs"+,, "src\RepairKit.Core\Services\TicketPriorityService.cs" >nul
+
 echo Introduced Enterprise Escalation Priority Regression in src\RepairKit.Core\Services\TicketPriorityService.cs.
 echo Enterprise escalated tickets now miss the proper combined priority boost.
 echo Run dotnet test to observe the expected failing tests.
 
 endlocal
-

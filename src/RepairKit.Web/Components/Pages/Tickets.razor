@@ -26,7 +26,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach (var ticket in Tickets)
+            @foreach (var ticket in SampleTickets)
             {
                 <tr>
                     <td>
@@ -54,7 +54,7 @@
     private readonly TicketPriorityService PriorityService = new();
     private readonly TicketSlaService SlaService = new();
 
-    private static readonly IReadOnlyList<Ticket> Tickets =
+    private static readonly IReadOnlyList<Ticket> SampleTickets =
     [
         new()
         {
@@ -118,4 +118,3 @@
         };
     }
 }
-

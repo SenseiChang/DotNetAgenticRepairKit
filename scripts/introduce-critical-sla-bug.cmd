@@ -12,9 +12,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+copy /B "src\RepairKit.Core\Services\TicketSlaService.cs"+,, "src\RepairKit.Core\Services\TicketSlaService.cs" >nul
+
 echo Introduced Critical SLA Regression in src\RepairKit.Core\Services\TicketSlaService.cs.
 echo Critical tickets are now incorrectly due after 24 hours instead of 2 hours.
 echo Run dotnet test to observe the expected failing tests.
 
 endlocal
-
