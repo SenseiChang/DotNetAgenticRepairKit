@@ -67,10 +67,12 @@ public static class RepairKitConfigResolver
 
         var resolvedSolutionPath = ResolvePath(config.SolutionPath, resolvedRepoRoot);
         var resolvedAgentOutputPath = ResolvePath(config.AgentOutputPath, resolvedRepoRoot);
+        var resolvedRepoIndexPath = ResolvePath(config.RepoIndexPath, resolvedRepoRoot);
 
         config.ResolvedRepoRoot = resolvedRepoRoot;
         config.ResolvedSolutionPath = resolvedSolutionPath;
         config.ResolvedAgentOutputPath = resolvedAgentOutputPath;
+        config.ResolvedRepoIndexPath = resolvedRepoIndexPath;
 
         Validate(config);
         return config;
@@ -133,6 +135,21 @@ public static class RepairKitConfigResolver
         {
             config.RecentHistoryLimit = 20;
         }
+
+        if (string.IsNullOrWhiteSpace(config.RepoIndexPath))
+        {
+            config.RepoIndexPath = ".agent/repo-index.json";
+        }
+
+        if (config.IndexedExtensions.Count == 0)
+        {
+            config.IndexedExtensions.AddRange([".cs", ".razor", ".csproj", ".md", ".json"]);
+        }
+
+        if (config.MaxRetrievedFiles <= 0)
+        {
+            config.MaxRetrievedFiles = 12;
+        }
     }
 
     private static void Validate(RepairKitConfig config)
@@ -163,4 +180,3 @@ public static class RepairKitConfigResolver
         return Path.GetFullPath(path, baseDirectory);
     }
 }
-

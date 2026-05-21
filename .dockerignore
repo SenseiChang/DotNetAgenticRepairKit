@@ -4,6 +4,7 @@ bin
 obj
 .agent/runs
 .agent/history.jsonl
+.agent/repo-index.json
 set-agent-env.local.cmd
 *.local.cmd
 TestResults

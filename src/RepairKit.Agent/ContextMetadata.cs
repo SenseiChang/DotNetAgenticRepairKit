@@ -8,5 +8,9 @@ public sealed record ContextMetadata(
     IReadOnlyList<string> IncludedFiles,
     string BuildOutputFile,
     string TestOutputFile,
-    string ContextPacketFile);
-
+    string ContextPacketFile,
+    string RetrievalMode = "fallback-keyword",
+    string? IndexFile = null,
+    IReadOnlyList<RetrievedContextFile>? RetrievedFiles = null,
+    IReadOnlyList<string>? ExcludedFiles = null,
+    bool Truncated = false);

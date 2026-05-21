@@ -67,6 +67,7 @@ set-agent-env.local.cmd
 # Agent run output
 .agent/runs/
 .agent/history.jsonl
+.agent/repo-index.json
 .agent-runs/
 agent-runs/
 repair-runs/

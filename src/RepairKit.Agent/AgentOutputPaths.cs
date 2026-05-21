@@ -215,4 +215,9 @@ public static class AgentOutputPaths
     {
         return Path.Combine(GetAgentFolder(config), "history.jsonl");
     }
+
+    public static string GetRepoIndexFile(RepairKitConfig config)
+    {
+        return config.ResolvedRepoIndexPath;
+    }
 }

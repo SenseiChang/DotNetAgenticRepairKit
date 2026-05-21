@@ -48,11 +48,26 @@ public sealed class RepairKitConfig
 
     public int RecentHistoryLimit { get; set; } = 20;
 
+    public string RepoIndexPath { get; set; } = ".agent/repo-index.json";
+
+    public List<string> IndexedExtensions { get; set; } =
+    [
+        ".cs",
+        ".razor",
+        ".csproj",
+        ".md",
+        ".json"
+    ];
+
+    public int MaxRetrievedFiles { get; set; } = 12;
+
     public string ResolvedRepoRoot { get; set; } = string.Empty;
 
     public string ResolvedSolutionPath { get; set; } = string.Empty;
 
     public string ResolvedAgentOutputPath { get; set; } = string.Empty;
+
+    public string ResolvedRepoIndexPath { get; set; } = string.Empty;
 
     public static RepairKitConfig CreateDefault(string repoRoot)
     {
@@ -67,7 +82,8 @@ public sealed class RepairKitConfig
         {
             ResolvedRepoRoot = fullRepoRoot,
             ResolvedSolutionPath = Path.Combine(fullRepoRoot, RepoRootLocator.SolutionFileName),
-            ResolvedAgentOutputPath = Path.Combine(fullRepoRoot, ".agent")
+            ResolvedAgentOutputPath = Path.Combine(fullRepoRoot, ".agent"),
+            ResolvedRepoIndexPath = Path.Combine(fullRepoRoot, ".agent", "repo-index.json")
         };
     }
 }

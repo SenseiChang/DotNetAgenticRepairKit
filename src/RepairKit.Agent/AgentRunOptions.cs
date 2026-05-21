@@ -9,7 +9,9 @@ public sealed record AgentRunOptions(
     string? ConfigPath = null,
     string? SolutionOverride = null,
     string? RepoRootOverride = null,
-    string? AgentOutputOverride = null)
+    string? AgentOutputOverride = null,
+    bool Index = false,
+    bool Reindex = false)
 {
     public static AgentRunOptions Parse(string[] args)
     {
@@ -30,6 +32,12 @@ public sealed record AgentRunOptions(
         var noApply = args.Any(arg =>
             string.Equals(arg, "--no-apply", StringComparison.OrdinalIgnoreCase));
 
+        var index = args.Any(arg =>
+            string.Equals(arg, "--index", StringComparison.OrdinalIgnoreCase));
+
+        var reindex = args.Any(arg =>
+            string.Equals(arg, "--reindex", StringComparison.OrdinalIgnoreCase));
+
         return new AgentRunOptions(
             noAi,
             planOnly,
@@ -39,7 +47,9 @@ public sealed record AgentRunOptions(
             GetOptionValue(args, "--config"),
             GetOptionValue(args, "--solution"),
             GetOptionValue(args, "--repo-root"),
-            GetOptionValue(args, "--agent-output"));
+            GetOptionValue(args, "--agent-output"),
+            index,
+            reindex);
     }
 
     private static string? GetOptionValue(string[] args, string name)

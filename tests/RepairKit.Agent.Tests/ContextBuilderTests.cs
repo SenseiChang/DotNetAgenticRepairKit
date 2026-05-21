@@ -51,6 +51,32 @@ public sealed class ContextBuilderTests : IDisposable
         Assert.Contains("No deterministic source file matches were found.", packet);
     }
 
+    [Fact]
+    public async Task FallsBackToKeywordMatchingWhenIndexIsInvalid()
+    {
+        const string runId = "20260520-223502";
+        var runFolder = AgentOutputPaths.GetRunFolder(_repoRoot, runId);
+        Directory.CreateDirectory(runFolder);
+        CreateFile("Demo.sln", string.Empty);
+        CreateFile("src/RepairKit.Core/Services/TicketSlaService.cs", "public sealed class TicketSlaService { }");
+        CreateFile("tests/RepairKit.Tests/TicketSlaServiceTests.cs", "public sealed class TicketSlaServiceTests { }");
+        CreateFile("src/RepairKit.Core/Models/Ticket.cs", "public sealed class Ticket { }");
+        CreateFile("src/RepairKit.Core/Models/CustomerTier.cs", "public enum CustomerTier { Standard }");
+        CreateFile("src/RepairKit.Core/Models/Severity.cs", "public enum Severity { Critical }");
+        CreateFile("src/RepairKit.Core/Models/TicketStatus.cs", "public enum TicketStatus { New }");
+        CreateFile("src/RepairKit.Core/Models/AssignedTeam.cs", "public enum AssignedTeam { Support }");
+        await File.WriteAllTextAsync(AgentOutputPaths.GetBuildOutputFile(_repoRoot, runId), "Build succeeded.");
+        await File.WriteAllTextAsync(AgentOutputPaths.GetTestOutputFile(_repoRoot, runId), "TicketSlaServiceTests failed.");
+        var config = RepairKitConfigResolver.Resolve(new RepairKitConfig { SolutionPath = "Demo.sln" }, _repoRoot, _repoRoot);
+        Directory.CreateDirectory(Path.GetDirectoryName(config.ResolvedRepoIndexPath)!);
+        await File.WriteAllTextAsync(config.ResolvedRepoIndexPath, "not json");
+
+        var metadata = await new ContextBuilder().BuildAsync(config, runId, CreateSummary(runId, buildPassed: true, testsPassed: false));
+
+        Assert.Equal("fallback-keyword", metadata.RetrievalMode);
+        Assert.Contains("src/RepairKit.Core/Services/TicketSlaService.cs", metadata.IncludedFiles);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_repoRoot))
@@ -85,4 +111,3 @@ public sealed class ContextBuilderTests : IDisposable
             "test-output.txt");
     }
 }
-

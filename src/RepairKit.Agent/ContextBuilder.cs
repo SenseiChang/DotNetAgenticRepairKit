@@ -24,9 +24,60 @@ public sealed class ContextBuilder
         var contextPacketFile = AgentOutputPaths.GetContextPacketFile(config, runId);
         var contextMetadataFile = AgentOutputPaths.GetContextMetadataFile(config, runId);
 
-        var buildOutput = Truncate(await ReadIfExistsAsync(buildOutputFile, cancellationToken), config.MaxContextCharacters);
-        var testOutput = Truncate(await ReadIfExistsAsync(testOutputFile, cancellationToken), config.MaxContextCharacters);
-        var matchResult = ContextFileMatcher.Match(buildOutput + Environment.NewLine + testOutput);
+        var rawBuildOutput = await ReadIfExistsAsync(buildOutputFile, cancellationToken);
+        var rawTestOutput = await ReadIfExistsAsync(testOutputFile, cancellationToken);
+        var buildOutput = Truncate(rawBuildOutput, config.MaxContextCharacters);
+        var testOutput = Truncate(rawTestOutput, config.MaxContextCharacters);
+        var truncated = rawBuildOutput.Length > buildOutput.Length || rawTestOutput.Length > testOutput.Length;
+        var failureText = buildOutput + Environment.NewLine + testOutput;
+        var fallbackMatchResult = ContextFileMatcher.Match(failureText);
+        var retrievalMode = "fallback-keyword";
+        var indexFile = AgentOutputPaths.GetRepoIndexFile(config);
+        IReadOnlyList<RetrievedContextFile> retrievedFiles = [];
+        IReadOnlyList<string> excludedFiles = [];
+        var matchResult = fallbackMatchResult;
+
+        try
+        {
+            if (!File.Exists(indexFile))
+            {
+                await new RepoIndexer().BuildAsync(config, cancellationToken);
+            }
+
+            if (File.Exists(indexFile))
+            {
+                var index = await RepoIndexJsonSerializer.ReadAsync(indexFile, cancellationToken);
+                var relatedHistoryTargetFiles = await ReadRelatedHistoryTargetFilesAsync(
+                    config,
+                    fallbackMatchResult.MatchedKeywords,
+                    cancellationToken);
+                var retrievalResult = new ContextRetriever().Retrieve(
+                    failureText,
+                    fallbackMatchResult.MatchedKeywords,
+                    index,
+                    config.MaxRetrievedFiles,
+                    relatedHistoryTargetFiles);
+
+                if (retrievalResult.IncludedFiles.Count > 0)
+                {
+                    retrievalMode = "repo-index";
+                    retrievedFiles = retrievalResult.RetrievedFiles;
+                    excludedFiles = retrievalResult.ExcludedFiles;
+                    matchResult = new ContextMatchResult(
+                        fallbackMatchResult.MatchedKeywords
+                            .Concat(retrievalResult.DetectedKeywords)
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                            .ToArray(),
+                        retrievalResult.IncludedFiles);
+                }
+            }
+        }
+        catch
+        {
+            retrievalMode = "fallback-keyword";
+            matchResult = fallbackMatchResult;
+        }
 
         var packet = await CreatePacketAsync(
             config.ResolvedRepoRoot,
@@ -47,7 +98,12 @@ public sealed class ContextBuilder
             matchResult.IncludedFiles,
             buildOutputFile,
             testOutputFile,
-            contextPacketFile);
+            contextPacketFile,
+            retrievalMode,
+            indexFile,
+            retrievedFiles,
+            excludedFiles,
+            truncated);
 
         await ContextMetadataJsonSerializer.WriteAsync(contextMetadataFile, metadata);
 
@@ -138,5 +194,33 @@ public sealed class ContextBuilder
         return File.Exists(path)
             ? await File.ReadAllTextAsync(path, cancellationToken)
             : string.Empty;
+    }
+
+    private static async Task<IReadOnlyList<string>> ReadRelatedHistoryTargetFilesAsync(
+        RepairKitConfig config,
+        IReadOnlyList<string> matchedKeywords,
+        CancellationToken cancellationToken)
+    {
+        var serviceNames = matchedKeywords
+            .Where(keyword => keyword.Contains("Ticket", StringComparison.OrdinalIgnoreCase))
+            .Select(keyword => keyword.Replace("Tests", string.Empty, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (serviceNames.Length == 0)
+        {
+            return [];
+        }
+
+        var entries = await new AgentRunHistoryReader().ReadRecentAsync(
+            config,
+            config.RecentHistoryLimit,
+            cancellationToken);
+
+        return entries
+            .SelectMany(entry => entry.TargetFiles)
+            .Where(file => serviceNames.Any(service =>
+                file.Contains(service, StringComparison.OrdinalIgnoreCase)))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 }

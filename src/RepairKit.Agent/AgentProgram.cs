@@ -10,6 +10,23 @@ public static class AgentProgram
             var detectedRepoRoot = RepoRootLocator.FindRepoRoot(Directory.GetCurrentDirectory());
             var config = RepairKitConfigResolver.Load(detectedRepoRoot, runOptions);
             var repoRoot = config.ResolvedRepoRoot;
+
+            if (runOptions.Index)
+            {
+                var indexResult = await new RepoIndexer().BuildAsync(config);
+                Console.WriteLine("Repository index generated.");
+                Console.WriteLine($"Index: {Path.GetRelativePath(repoRoot, indexResult.IndexFile)}");
+                Console.WriteLine($"Indexed files: {indexResult.IndexedFileCount}");
+                Console.WriteLine($"Skipped files: {indexResult.SkippedFileCount}");
+                return 0;
+            }
+
+            if (runOptions.Reindex)
+            {
+                var indexResult = await new RepoIndexer().BuildAsync(config);
+                Console.WriteLine($"Repository index refreshed: {Path.GetRelativePath(repoRoot, indexResult.IndexFile)}");
+            }
+
             var runId = RunIdGenerator.Create();
             var outputFolder = AgentOutputPaths.GetRunFolder(config, runId);
 

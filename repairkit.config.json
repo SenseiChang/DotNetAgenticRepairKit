@@ -30,6 +30,14 @@
     "appsettings"
   ],
   "maxContextCharacters": 80000,
-  "recentHistoryLimit": 20
+  "recentHistoryLimit": 20,
+  "repoIndexPath": ".agent/repo-index.json",
+  "indexedExtensions": [
+    ".cs",
+    ".razor",
+    ".csproj",
+    ".md",
+    ".json"
+  ],
+  "maxRetrievedFiles": 12
 }
-

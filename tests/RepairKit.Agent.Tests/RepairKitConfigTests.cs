@@ -20,6 +20,9 @@ public sealed class RepairKitConfigTests : IDisposable
         Assert.Contains("src/RepairKit.Core/", config.AllowedEditPaths);
         Assert.Equal(80000, config.MaxContextCharacters);
         Assert.Equal(20, config.RecentHistoryLimit);
+        Assert.Equal(Path.Combine(repoRoot, ".agent", "repo-index.json"), config.ResolvedRepoIndexPath);
+        Assert.Contains(".cs", config.IndexedExtensions);
+        Assert.Equal(12, config.MaxRetrievedFiles);
     }
 
     [Fact]
@@ -35,7 +38,10 @@ public sealed class RepairKitConfigTests : IDisposable
   "agentOutputPath": ".custom-agent",
   "allowedEditPaths": ["src/"],
   "maxContextCharacters": 123,
-  "recentHistoryLimit": 7
+  "recentHistoryLimit": 7,
+  "repoIndexPath": ".custom-agent/index.json",
+  "indexedExtensions": [".cs"],
+  "maxRetrievedFiles": 5
 }
 """);
 
@@ -45,6 +51,9 @@ public sealed class RepairKitConfigTests : IDisposable
         Assert.Equal(["src/"], config.AllowedEditPaths);
         Assert.Equal(123, config.MaxContextCharacters);
         Assert.Equal(7, config.RecentHistoryLimit);
+        Assert.Equal(Path.Combine(repoRoot, ".custom-agent", "index.json"), config.ResolvedRepoIndexPath);
+        Assert.Equal([".cs"], config.IndexedExtensions);
+        Assert.Equal(5, config.MaxRetrievedFiles);
     }
 
     [Fact]
@@ -177,4 +186,3 @@ public sealed class RepairKitConfigTests : IDisposable
         return repoRoot;
     }
 }
-
