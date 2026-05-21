@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace RepairKit.Agent;
 
-public sealed class CommandRunner
+public sealed class CommandRunner : ICommandRunner
 {
     public async Task<CommandResult> RunAsync(
         string fileName,
@@ -45,4 +45,3 @@ public sealed class CommandRunner
             endedUtc);
     }
 }
-

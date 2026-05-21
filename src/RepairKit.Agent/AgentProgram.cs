@@ -65,6 +65,8 @@ public static class AgentProgram
             RepairPlanResult? repairPlanResult = null;
             RepairApprovalDecision? approvalDecision = null;
             PatchApplicationResult? patchApplicationResult = null;
+            GitDiffCaptureResult? gitDiffResult = null;
+            string? repairReportPath = null;
             string? aiError = null;
 
             if (!summary.OverallPassed)
@@ -101,6 +103,10 @@ public static class AgentProgram
                                 repoRoot,
                                 runId,
                                 CancellationToken.None);
+
+                            var gitDiffCapture = new GitDiffCapture(new CommandRunner());
+                            gitDiffResult = await gitDiffCapture.CaptureAsync(repoRoot, runId);
+                            repairReportPath = await new RepairReportWriter().WriteAsync(repoRoot, runId);
                         }
                     }
                     catch (Exception ex)
@@ -120,6 +126,8 @@ public static class AgentProgram
                 repairPlanResult,
                 approvalDecision,
                 patchApplicationResult,
+                gitDiffResult,
+                repairReportPath,
                 aiError);
 
             if (patchApplicationResult is not null)
@@ -156,6 +164,8 @@ public static class AgentProgram
         RepairPlanResult? repairPlanResult,
         RepairApprovalDecision? approvalDecision,
         PatchApplicationResult? patchApplicationResult,
+        GitDiffCaptureResult? gitDiffResult,
+        string? repairReportPath,
         string? aiError)
     {
         Console.WriteLine();
@@ -234,6 +244,20 @@ public static class AgentProgram
                 Console.WriteLine($"Validation Tests Passed: {patchApplicationResult.ValidationTestsPassed}");
                 Console.WriteLine($"Validation Overall Passed: {patchApplicationResult.ValidationOverallPassed}");
                 Console.WriteLine($"Patch Application Result: {patchApplicationPath}");
+            }
+
+            if (gitDiffResult?.DiffFile is not null)
+            {
+                Console.WriteLine($"Git Diff: {gitDiffResult.DiffFile}");
+            }
+            else if (gitDiffResult?.ErrorFile is not null)
+            {
+                Console.WriteLine($"Git Diff Error: {gitDiffResult.ErrorFile}");
+            }
+
+            if (repairReportPath is not null)
+            {
+                Console.WriteLine($"Repair Report: {repairReportPath}");
             }
 
             Console.WriteLine("Next step: Review generated artifacts before committing changes.");

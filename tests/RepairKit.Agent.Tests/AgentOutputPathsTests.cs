@@ -66,5 +66,17 @@ public sealed class AgentOutputPathsTests
         Assert.Equal(
             Path.Combine(runFolder, "approval-decision.json"),
             AgentOutputPaths.GetApprovalDecisionFile(runFolder));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "git-diff.patch"),
+            AgentOutputPaths.GetGitDiffFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "git-diff-error.txt"),
+            AgentOutputPaths.GetGitDiffErrorFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "repair-report.md"),
+            AgentOutputPaths.GetRepairReportFile(repoRoot, runId));
     }
 }

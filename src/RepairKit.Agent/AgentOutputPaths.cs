@@ -103,4 +103,19 @@ public static class AgentOutputPaths
     {
         return Path.Combine(runFolder, "patch-error.txt");
     }
+
+    public static string GetGitDiffFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "git-diff.patch");
+    }
+
+    public static string GetGitDiffErrorFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "git-diff-error.txt");
+    }
+
+    public static string GetRepairReportFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "repair-report.md");
+    }
 }

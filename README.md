@@ -69,10 +69,14 @@ By default, failed runs send the context packet to OpenRouter and write a plan-o
 - `patch-application.json` after patch application
 - `validation-build-output.txt`
 - `validation-test-output.txt`
+- `git-diff.patch`
+- `repair-report.md`
 - `ai-error.txt` if AI planning fails
 - `patch-error.txt` if patch application fails
 
 Applied changes are backed up under `.agent\runs\<runId>\backups\` before any source file is modified. After patching, the agent runs `dotnet build --no-incremental` and `dotnet test --no-build` again from an isolated validation output folder.
+
+After patch validation, the agent captures `git diff -- src tests` to `git-diff.patch` and writes a human-readable `repair-report.md` summarizing the run, plan, approval decision, patch result, validation result, and diff excerpt.
 
 Environment variables:
 
@@ -157,11 +161,20 @@ Expected result:
 
 - `Patch Applied: true`
 - `Validation Overall Passed: true`
+- `git-diff.patch` generated
+- `repair-report.md` generated
 
 Then run:
 
 ```cmd
 dotnet test
+```
+
+Inspect the report and diff:
+
+```cmd
+type .agent\runs\<runId>\repair-report.md
+type .agent\runs\<runId>\git-diff.patch
 ```
 
 ## Documentation
