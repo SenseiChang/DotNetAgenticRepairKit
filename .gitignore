@@ -1,0 +1,76 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.VC.db
+*.VC.VC.opendb
+
+# VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.assets.json
+
+# Logs
+*.log
+logs/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.Development.local.json
+appsettings.Local.json
+secrets.json
+*.secrets.json
+*.pfx
+*.pem
+*.key
+
+# User and machine-specific files
+*.db
+*.sqlite
+*.sqlite3
+*.tmp
+*.temp
+*.bak
+
+# Agent run output
+.agent/
+.agent-runs/
+agent-runs/
+repair-runs/
+run-output/
+workspace-output/
+patches/generated/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
