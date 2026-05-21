@@ -1,0 +1,121 @@
+@page "/tickets"
+@using RepairKit.Core.Models
+@using RepairKit.Core.Services
+
+<PageTitle>Support Ticket Triage Dashboard</PageTitle>
+
+<div class="dashboard-header">
+    <div>
+        <h1>Support Ticket Triage Dashboard</h1>
+        <p class="text-muted mb-0">In-memory sample tickets with deterministic priority and SLA calculations.</p>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover align-middle ticket-table">
+        <thead>
+            <tr>
+                <th scope="col">Title</th>
+                <th scope="col">Customer tier</th>
+                <th scope="col">Severity</th>
+                <th scope="col">Status</th>
+                <th scope="col">Assigned team</th>
+                <th scope="col">Escalated</th>
+                <th scope="col" class="text-end">Priority</th>
+                <th scope="col">SLA due UTC</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ticket in Tickets)
+            {
+                <tr>
+                    <td>
+                        <strong>@ticket.Title</strong>
+                        <div class="small text-muted">@ticket.Description</div>
+                    </td>
+                    <td>@ticket.CustomerTier</td>
+                    <td>
+                        <span class="badge @GetSeverityBadgeClass(ticket.Severity)">@ticket.Severity</span>
+                    </td>
+                    <td>@ticket.Status</td>
+                    <td>@ticket.AssignedTeam</td>
+                    <td>@(ticket.IsEscalated ? "Yes" : "No")</td>
+                    <td class="text-end fw-semibold">@PriorityService.CalculatePriority(ticket)</td>
+                    <td>@SlaService.CalculateDueUtc(ticket).ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private static readonly DateTime SampleNowUtc = new(2026, 5, 20, 16, 0, 0, DateTimeKind.Utc);
+
+    private readonly TicketPriorityService PriorityService = new();
+    private readonly TicketSlaService SlaService = new();
+
+    private static readonly IReadOnlyList<Ticket> Tickets =
+    [
+        new()
+        {
+            Id = Guid.Parse("2dff7324-0115-4b87-afc6-4dfab5ad0287"),
+            Title = "Payment receipt not generated",
+            Description = "Customer paid an annual invoice but cannot download the receipt.",
+            CustomerTier = CustomerTier.Premium,
+            Severity = Severity.Medium,
+            CreatedUtc = SampleNowUtc.AddHours(-3),
+            Status = TicketStatus.Triaged,
+            AssignedTeam = AssignedTeam.Billing,
+            IsEscalated = false
+        },
+        new()
+        {
+            Id = Guid.Parse("33ac9f94-22ab-4a32-b0f6-ad5cd8986212"),
+            Title = "Single sign-on outage",
+            Description = "Enterprise tenant users cannot authenticate through SSO.",
+            CustomerTier = CustomerTier.Enterprise,
+            Severity = Severity.Critical,
+            CreatedUtc = SampleNowUtc.AddMinutes(-45),
+            Status = TicketStatus.InProgress,
+            AssignedTeam = AssignedTeam.Security,
+            IsEscalated = true
+        },
+        new()
+        {
+            Id = Guid.Parse("60a3e448-5528-4931-82bd-5e0ca1dbda5b"),
+            Title = "Export job timing out",
+            Description = "Large account export fails after recent usage spike.",
+            CustomerTier = CustomerTier.Enterprise,
+            Severity = Severity.High,
+            CreatedUtc = SampleNowUtc.AddHours(-5),
+            Status = TicketStatus.New,
+            AssignedTeam = AssignedTeam.Engineering,
+            IsEscalated = false
+        },
+        new()
+        {
+            Id = Guid.Parse("ffc8f9d7-b624-4da2-aecf-1c255d37f1cf"),
+            Title = "Update contact email",
+            Description = "Standard customer needs help changing the billing contact.",
+            CustomerTier = CustomerTier.Standard,
+            Severity = Severity.Low,
+            CreatedUtc = SampleNowUtc.AddHours(-12),
+            Status = TicketStatus.New,
+            AssignedTeam = AssignedTeam.Support,
+            IsEscalated = false
+        }
+    ];
+
+    private static string GetSeverityBadgeClass(Severity severity)
+    {
+        return severity switch
+        {
+            Severity.Critical => "text-bg-danger",
+            Severity.High => "text-bg-warning",
+            Severity.Medium => "text-bg-info",
+            Severity.Low => "text-bg-secondary",
+            _ => "text-bg-light"
+        };
+    }
+}
+
