@@ -60,11 +60,12 @@ When a build or test run fails, the agent also writes deterministic repair-plann
 - `context-packet.md`
 - `context-metadata.json`
 
-By default, failed runs send the context packet to OpenRouter and write a plan-only AI repair plan. Phase 5 does not apply patches or modify source files.
+By default, failed runs send the context packet to OpenRouter and write a plan-only AI repair plan. After a valid plan is generated, Phase 6 adds a human approval gate. It still does not apply patches or modify source files.
 
 - `model-request.json`
 - `model-response.raw.txt`
 - `repair-plan.json`
+- `approval-decision.json` after an approval decision
 - `ai-error.txt` if AI planning fails
 
 Environment variables:
@@ -94,7 +95,39 @@ set REPAIRKIT_MODEL=openai/gpt-5.2
 dotnet run --project src\RepairKit.Agent
 ```
 
-`--plan-only` is the default safety behavior. The agent can call OpenRouter and write `repair-plan.json`, but repair selection and patch application are reserved for later phases.
+Run a full Phase 6 approval flow:
+
+```cmd
+call set-agent-env.local.cmd
+scripts\introduce-critical-sla-bug.cmd
+dotnet run --project src\RepairKit.Agent
+```
+
+Then type:
+
+```cmd
+APPLY
+```
+
+Plan without prompting for approval:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --plan-only
+```
+
+Auto-approve only low-risk plans:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --approve-plan
+```
+
+Force manual approval even when `--approve-plan` is present:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --require-approval
+```
+
+Phase 6 can call OpenRouter, write `repair-plan.json`, and write `approval-decision.json`. Repair selection and patch application are reserved for Phase 7.
 
 ## Documentation
 

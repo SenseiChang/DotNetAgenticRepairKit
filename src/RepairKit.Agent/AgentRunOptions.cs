@@ -1,6 +1,10 @@
 namespace RepairKit.Agent;
 
-public sealed record AgentRunOptions(bool NoAi, bool PlanOnly)
+public sealed record AgentRunOptions(
+    bool NoAi,
+    bool PlanOnly,
+    bool ApprovePlan,
+    bool RequireApproval)
 {
     public static AgentRunOptions Parse(string[] args)
     {
@@ -8,9 +12,17 @@ public sealed record AgentRunOptions(bool NoAi, bool PlanOnly)
             string.Equals(arg, "--no-ai", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(arg, "--plan-only-without-ai", StringComparison.OrdinalIgnoreCase));
 
-        var planOnly = true;
+        var planOnly = args.Any(arg =>
+            string.Equals(arg, "--plan-only", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(arg, "--plan-only-without-ai", StringComparison.OrdinalIgnoreCase));
 
-        return new AgentRunOptions(noAi, planOnly);
+        var approvePlan = args.Any(arg =>
+            string.Equals(arg, "--approve-plan", StringComparison.OrdinalIgnoreCase));
+
+        var requireApproval = args.Any(arg =>
+            string.Equals(arg, "--require-approval", StringComparison.OrdinalIgnoreCase));
+
+        return new AgentRunOptions(noAi, planOnly, approvePlan, requireApproval);
     }
 }
 

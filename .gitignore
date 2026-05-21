@@ -53,6 +53,7 @@ secrets.json
 *.key
 
 # Local agent secrets
+set-agent-env.local.cmd
 *.local.cmd
 
 # User and machine-specific files

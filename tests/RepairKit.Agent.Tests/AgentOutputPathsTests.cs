@@ -62,5 +62,9 @@ public sealed class AgentOutputPathsTests
         Assert.Equal(
             Path.Combine(runFolder, "ai-error.txt"),
             AgentOutputPaths.GetAiErrorFile(runFolder));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "approval-decision.json"),
+            AgentOutputPaths.GetApprovalDecisionFile(runFolder));
     }
 }

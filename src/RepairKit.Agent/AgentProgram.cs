@@ -63,6 +63,7 @@ public static class AgentProgram
             await RunSummaryJsonSerializer.WriteAsync(summaryFile, summary);
 
             RepairPlanResult? repairPlanResult = null;
+            RepairApprovalDecision? approvalDecision = null;
             string? aiError = null;
 
             if (!summary.OverallPassed)
@@ -82,6 +83,13 @@ public static class AgentProgram
                             contextPacket,
                             outputFolder,
                             CancellationToken.None);
+
+                        var approvalService = new RepairApprovalService(new ConsoleUserPrompt());
+                        approvalDecision = await approvalService.RequestApprovalAsync(
+                            runId,
+                            repairPlanResult.Plan,
+                            runOptions,
+                            outputFolder);
                     }
                     catch (Exception ex)
                     {
@@ -98,6 +106,7 @@ public static class AgentProgram
                 AgentOutputPaths.GetRelativeRunFolder(runId),
                 runOptions,
                 repairPlanResult,
+                approvalDecision,
                 aiError);
 
             if (!summary.BuildPassed)
@@ -127,6 +136,7 @@ public static class AgentProgram
         string outputFolder,
         AgentRunOptions runOptions,
         RepairPlanResult? repairPlanResult,
+        RepairApprovalDecision? approvalDecision,
         string? aiError)
     {
         Console.WriteLine();
@@ -160,6 +170,23 @@ public static class AgentProgram
                 Console.WriteLine("AI Planning: failed");
                 Console.WriteLine($"AI Error: {aiError}");
             }
+
+            if (repairPlanResult is not null)
+            {
+                Console.WriteLine($"Repair Plan Path: {repairPlanResult.RepairPlanPath}");
+            }
+
+            if (approvalDecision is not null)
+            {
+                var approvalPath = AgentOutputPaths.GetApprovalDecisionFile(
+                    Path.Combine(
+                        summary.WorkingDirectory,
+                        AgentOutputPaths.GetRelativeRunFolder(summary.RunId)));
+                Console.WriteLine($"Approval Decision Path: {approvalPath}");
+                Console.WriteLine($"Approved: {approvalDecision.Approved}");
+            }
+
+            Console.WriteLine("Next step: Patch application is not implemented until Phase 7.");
         }
     }
 }

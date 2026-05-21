@@ -61,4 +61,9 @@ public static class AgentOutputPaths
     {
         return Path.Combine(runFolder, "ai-error.txt");
     }
+
+    public static string GetApprovalDecisionFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "approval-decision.json");
+    }
 }
