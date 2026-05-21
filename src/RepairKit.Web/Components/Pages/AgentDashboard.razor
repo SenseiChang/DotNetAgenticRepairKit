@@ -1,0 +1,168 @@
+@page "/agent-dashboard"
+@inject AgentDashboardService DashboardService
+@inject NavigationManager Navigation
+
+<PageTitle>Agent Dashboard</PageTitle>
+
+<h1>Agent Dashboard</h1>
+<p class="text-muted">Read-only local view of agent runs from the configured agent output folder.</p>
+
+@if (!string.IsNullOrWhiteSpace(ErrorMessage))
+{
+    <div class="alert alert-warning">@ErrorMessage</div>
+}
+
+<div class="dashboard-section">
+    <h2>Recent Runs</h2>
+    @if (Runs.Count == 0)
+    {
+        <p class="text-muted">No agent history was found.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle agent-runs-table">
+                <thead>
+                    <tr>
+                        <th>Run ID</th>
+                        <th>Started UTC</th>
+                        <th>Final Outcome</th>
+                        <th>Initial Tests Passed</th>
+                        <th>AI Planning Succeeded</th>
+                        <th>Risk Level</th>
+                        <th>Approved</th>
+                        <th>Patch Applied</th>
+                        <th>Validation Passed</th>
+                        <th>Model</th>
+                        <th>Target Files</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var run in Runs)
+                    {
+                        <tr class="@(run.RunId == RunId ? "table-active" : null)">
+                            <td><a href="@GetRunHref(run.RunId)">@run.RunId</a></td>
+                            <td>@run.StartedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td><span class="badge text-bg-secondary">@run.FinalOutcome</span></td>
+                            <td>@BoolBadge(run.InitialTestsPassed)</td>
+                            <td>@BoolBadge(run.AiPlanningSucceeded)</td>
+                            <td>@(run.RiskLevel ?? "n/a")</td>
+                            <td>@NullableBoolBadge(run.Approved)</td>
+                            <td>@BoolBadge(run.PatchApplied)</td>
+                            <td>@NullableBoolBadge(run.ValidationOverallPassed)</td>
+                            <td>@(run.Model ?? "n/a")</td>
+                            <td>@FormatList(run.TargetFiles)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (SelectedDetails?.HistoryEntry is not null)
+{
+    var selected = SelectedDetails.HistoryEntry;
+    <div class="dashboard-section">
+        <h2>Run Details</h2>
+        <dl class="row">
+            <dt class="col-sm-3">Run ID</dt>
+            <dd class="col-sm-9">@selected.RunId</dd>
+            <dt class="col-sm-3">Final outcome</dt>
+            <dd class="col-sm-9">@selected.FinalOutcome</dd>
+            <dt class="col-sm-3">Model</dt>
+            <dd class="col-sm-9">@(selected.Model ?? "n/a")</dd>
+            <dt class="col-sm-3">Token usage</dt>
+            <dd class="col-sm-9">Prompt: @FormatNullableInt(selected.PromptTokens), Completion: @FormatNullableInt(selected.CompletionTokens), Total: @FormatNullableInt(selected.TotalTokens)</dd>
+            <dt class="col-sm-3">Repair summary</dt>
+            <dd class="col-sm-9">@(selected.RepairSummary ?? "n/a")</dd>
+            <dt class="col-sm-3">Risk level</dt>
+            <dd class="col-sm-9">@(selected.RiskLevel ?? "n/a")</dd>
+            <dt class="col-sm-3">Target files</dt>
+            <dd class="col-sm-9">@FormatList(selected.TargetFiles)</dd>
+            <dt class="col-sm-3">Changed files</dt>
+            <dd class="col-sm-9">@FormatList(selected.ChangedFiles)</dd>
+            <dt class="col-sm-3">Validation status</dt>
+            <dd class="col-sm-9">@NullableBoolBadge(selected.ValidationOverallPassed)</dd>
+        </dl>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Artifacts</h2>
+        @foreach (var artifact in SelectedDetails.Artifacts)
+        {
+            <details class="artifact-panel" open="@(artifact.Name == "repair-report")">
+                <summary>@artifact.FileName @(artifact.Exists ? null : "(not available)")</summary>
+                <pre class="artifact-content">@artifact.Content</pre>
+            </details>
+        }
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(RunId))
+{
+    <div class="alert alert-warning">The selected run was not found or the run ID is invalid.</div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "runId")]
+    public string? RunId { get; set; }
+
+    private IReadOnlyList<AgentRunHistoryEntry> Runs { get; set; } = [];
+
+    private AgentRunDetails? SelectedDetails { get; set; }
+
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            Runs = await DashboardService.GetRecentRunsAsync();
+            SelectedDetails = null;
+            ErrorMessage = null;
+
+            if (!string.IsNullOrWhiteSpace(RunId))
+            {
+                SelectedDetails = await DashboardService.GetRunDetailsAsync(RunId);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            Runs = [];
+            SelectedDetails = null;
+        }
+    }
+
+    private string GetRunHref(string runId)
+    {
+        return $"/agent-dashboard?runId={Uri.EscapeDataString(runId)}";
+    }
+
+    private static MarkupString BoolBadge(bool value)
+    {
+        var css = value ? "text-bg-success" : "text-bg-danger";
+        return new MarkupString($"<span class=\"badge {css}\">{value}</span>");
+    }
+
+    private static MarkupString NullableBoolBadge(bool? value)
+    {
+        if (!value.HasValue)
+        {
+            return new MarkupString("<span class=\"badge text-bg-secondary\">n/a</span>");
+        }
+
+        return BoolBadge(value.Value);
+    }
+
+    private static string FormatList(IReadOnlyList<string> values)
+    {
+        return values.Count == 0 ? "n/a" : string.Join(", ", values);
+    }
+
+    private static string FormatNullableInt(int? value)
+    {
+        return value?.ToString() ?? "n/a";
+    }
+}
+

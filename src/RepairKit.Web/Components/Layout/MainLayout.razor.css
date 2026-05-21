@@ -6,6 +6,7 @@
 
 main {
     flex: 1;
+    min-width: 0;
 }
 
 .sidebar {
@@ -49,6 +50,7 @@ main {
 @media (min-width: 641px) {
     .page {
         flex-direction: row;
+        max-width: 100%;
     }
 
     .sidebar {

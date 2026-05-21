@@ -1,3 +1,4 @@
+using RepairKit.Infrastructure.AgentDashboard;
 using RepairKit.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddSingleton<AgentDashboardService>();
 
 var app = builder.Build();
 

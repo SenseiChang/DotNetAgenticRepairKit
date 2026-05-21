@@ -1,7 +1,60 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>DotNetAgenticRepairKit</PageTitle>
 
-<h1>Hello, world!</h1>
+<section class="home-intro">
+    <p class="eyebrow">Portfolio demo</p>
+    <h1>DotNetAgenticRepairKit</h1>
+    <p class="lead">
+        A custom .NET agentic AI remediation skeleton that pairs a realistic Blazor support workflow with a safe repair pipeline.
+    </p>
 
-Welcome to your new app.
+    <div class="home-actions">
+        <a class="btn btn-primary" href="tickets">Open Tickets</a>
+        <a class="btn btn-outline-secondary" href="agent-dashboard">View Agent Runs</a>
+    </div>
+</section>
+
+<section class="feature-grid" aria-label="Project areas">
+    <article class="feature-card">
+        <h2>Support Ticket Triage Dashboard</h2>
+        <p>
+            The sample application domain models ticket severity, customer tier, SLA due dates, assignment, escalation, and status transitions.
+        </p>
+    </article>
+
+    <article class="feature-card">
+        <h2>Agent Dashboard</h2>
+        <p>
+            A read-only local dashboard displays run history, repair reports, diffs, validation results, and other generated agent artifacts.
+        </p>
+    </article>
+
+    <article class="feature-card">
+        <h2>Agentic AI Repair Workflow</h2>
+        <p>
+            The console agent detects build and test failures, generates deterministic context, records local history, and produces structured repair outputs.
+        </p>
+    </article>
+
+    <article class="feature-card">
+        <h2>OpenRouter Repair Planning</h2>
+        <p>
+            Failed runs can send a focused context packet to OpenRouter and save a validated JSON repair plan without exposing local secrets.
+        </p>
+    </article>
+
+    <article class="feature-card">
+        <h2>Human Approval Gate</h2>
+        <p>
+            Repair plans require explicit approval before source files can be changed, keeping the workflow inspectable and controlled.
+        </p>
+    </article>
+
+    <article class="feature-card">
+        <h2>Safe Patch Validation</h2>
+        <p>
+            Approved full-file replacements are path-validated, backed up, applied, rebuilt, retested, diffed, and reported.
+        </p>
+    </article>
+</section>

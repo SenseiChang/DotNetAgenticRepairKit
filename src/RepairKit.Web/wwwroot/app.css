@@ -1,5 +1,7 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 a, .btn-link {
@@ -17,7 +19,64 @@ a, .btn-link {
 }
 
 .content {
+    max-width: 100%;
+    overflow-x: hidden;
     padding-top: 1.1rem;
+}
+
+.home-intro {
+    margin-bottom: 2rem;
+    max-width: 900px;
+}
+
+.home-intro h1 {
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.eyebrow {
+    color: #4f6f52;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+}
+
+.lead {
+    color: #3f474f;
+    font-size: 1.15rem;
+    max-width: 760px;
+}
+
+.home-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.feature-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.feature-card {
+    border: 1px solid #d7d7d7;
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.feature-card h2 {
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+    color: #4d555d;
+    margin-bottom: 0;
 }
 
 .dashboard-header {
@@ -28,7 +87,77 @@ a, .btn-link {
 }
 
 .ticket-table {
-    min-width: 920px;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.ticket-table th,
+.ticket-table td {
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.dashboard-section {
+    margin-bottom: 2rem;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.agent-runs-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.agent-runs-table th,
+.agent-runs-table td {
+    overflow-wrap: anywhere;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.agent-runs-table .badge {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.table-responsive {
+    max-width: 100%;
+}
+
+.artifact-panel {
+    border: 1px solid #d7d7d7;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.75rem;
+}
+
+.artifact-panel summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.artifact-content {
+    background: #f7f7f7;
+    border-radius: 4px;
+    margin-top: 0.75rem;
+    max-height: 36rem;
+    overflow: auto;
+    padding: 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.dashboard-section dl,
+.dashboard-section dd {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 h1:focus {
