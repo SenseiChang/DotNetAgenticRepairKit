@@ -61,6 +61,12 @@ public static class AgentProgram
 
             await RunSummaryJsonSerializer.WriteAsync(summaryFile, summary);
 
+            if (!summary.OverallPassed)
+            {
+                var contextBuilder = new ContextBuilder();
+                await contextBuilder.BuildAsync(repoRoot, runId, summary);
+            }
+
             PrintSummary(summary, AgentOutputPaths.GetRelativeRunFolder(runId));
 
             if (!summary.BuildPassed)

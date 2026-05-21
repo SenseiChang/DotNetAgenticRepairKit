@@ -36,5 +36,13 @@ public sealed class AgentOutputPathsTests
         Assert.Equal(
             Path.Combine(repoRoot, ".agent", "runs", runId, "run-summary.json"),
             AgentOutputPaths.GetRunSummaryFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "runs", runId, "context-packet.md"),
+            AgentOutputPaths.GetContextPacketFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "runs", runId, "context-metadata.json"),
+            AgentOutputPaths.GetContextMetadataFile(repoRoot, runId));
     }
 }

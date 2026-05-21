@@ -31,4 +31,14 @@ public static class AgentOutputPaths
     {
         return Path.Combine(GetRunFolder(repoRoot, runId), "run-summary.json");
     }
+
+    public static string GetContextPacketFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "context-packet.md");
+    }
+
+    public static string GetContextMetadataFile(string repoRoot, string runId)
+    {
+        return Path.Combine(GetRunFolder(repoRoot, runId), "context-metadata.json");
+    }
 }

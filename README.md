@@ -55,13 +55,18 @@ Each run writes structured output under `.agent\runs\<runId>\`:
 - `test-output.txt`
 - `run-summary.json`
 
+When a build or test run fails, the agent also writes deterministic repair-planning context:
+
+- `context-packet.md`
+- `context-metadata.json`
+
 Run it from the repository root:
 
 ```cmd
 dotnet run --project src\RepairKit.Agent
 ```
 
-The agent currently only builds, runs tests, and records output. AI planning, repair selection, and patch application are reserved for later phases.
+The agent currently only builds, runs tests, records output, and collects deterministic failure context. AI planning, repair selection, and patch application are reserved for later phases.
 
 ## Documentation
 
