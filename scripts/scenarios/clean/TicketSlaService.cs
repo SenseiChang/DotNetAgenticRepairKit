@@ -12,7 +12,7 @@ public sealed class TicketSlaService
 
         return ticket.Severity switch
         {
-            Severity.Critical => createdUtc.AddHours(24),
+            Severity.Critical => createdUtc.AddHours(2),
             Severity.High => createdUtc.AddHours(8),
             Severity.Medium => createdUtc.AddHours(24),
             Severity.Low => createdUtc.AddHours(72),

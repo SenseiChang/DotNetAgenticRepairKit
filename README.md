@@ -49,4 +49,31 @@ dotnet run --project src\RepairKit.Agent
 
 - `docs/architecture.md`
 - `docs/agent-workflow.md`
+- `docs/repair-scenarios.md`
 
+## Controlled Repair Scenarios
+
+This repository includes controlled bug scripts for demonstrating future AI agent repair behavior. They do not add AI integration; they only copy known buggy service implementations over the current local files so tests fail in predictable ways.
+
+Example:
+
+```cmd
+scripts\introduce-critical-sla-bug.cmd
+dotnet test
+scripts\restore-clean-services.cmd
+dotnet test
+```
+
+Available scenarios:
+
+```cmd
+scripts\introduce-critical-sla-bug.cmd
+scripts\introduce-closed-ticket-reopen-bug.cmd
+scripts\introduce-enterprise-escalation-priority-bug.cmd
+```
+
+Safety notes:
+
+- These scripts are intentionally destructive to local working files.
+- Commit or stash work before running a scenario.
+- `scripts\restore-clean-services.cmd` returns the service files to the known-good versions.
