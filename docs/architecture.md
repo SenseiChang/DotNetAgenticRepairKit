@@ -80,7 +80,25 @@ context-packet.md + context-metadata.json
 
 The repository index is deterministic and local. It stores file paths, file names, extensions, sizes, hashes, declared types, namespaces, keywords, snippets, and timestamps. It does not call OpenRouter, use embeddings, or require a vector database.
 
-`ContextRetriever` scores indexed files using exact file-name matches, declared type matches, namespace/type references, keyword matches, test file names, source file names, and related run history targets when available. If the index cannot be read or no relevant files are retrieved, `ContextBuilder` preserves the earlier hardcoded keyword fallback.
+The current implementation uses `JsonRepoIndexStore` and `RepoIndexContextRetriever`. `RepoIndexContextRetriever` scores indexed files using exact file-name matches, declared type matches, namespace/type references, keyword matches, test file names, source file names, and related run history targets when available. If the index cannot be read or no relevant files are retrieved, `ContextBuilder` preserves the earlier hardcoded keyword fallback.
+
+The retrieval layer is abstracted behind `IRepoIndexer`, `IRepoIndexStore`, and `IContextRetriever`:
+
+```text
+ContextBuilder
+  |
+  +--> IRepoIndexer
+  |      current: RepoIndexer
+  |
+  +--> IRepoIndexStore
+  |      current: JsonRepoIndexStore
+  |
+  +--> IContextRetriever
+         current: RepoIndexContextRetriever
+         future: VectorContextRetriever / HybridContextRetriever
+```
+
+Future stores such as Qdrant, Postgres/pgvector, Chroma, or Azure AI Search can be added behind these contracts without changing the agent pipeline.
 
 ## Data And Artifact Flow
 
@@ -139,7 +157,7 @@ OpenRouter does not build the repository index and does not apply patches. Patch
 ```text
 Static analysis ------+
                       |
-Embeddings/vector ----+--> ContextRetriever --> ContextBuilder --> AI repair planner
+Embeddings/vector ----+--> IContextRetriever --> ContextBuilder --> AI repair planner
                       |
 MCP work items -------+
 

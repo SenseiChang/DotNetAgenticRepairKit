@@ -280,6 +280,8 @@ It validates run IDs, reads only known artifact names, and stays read-only.
 
 `RepairKit.Agent` can build a deterministic repository index at `.agent\repo-index.json`. This is RAG-lite retrieval: it uses file metadata, declared types, namespaces, keywords, snippets, and deterministic scoring. It does not use embeddings, a vector database, Semantic Kernel, LangChain, AutoGen, CrewAI, or OpenRouter during indexing.
 
+The current implementation uses `JsonRepoIndexStore` and `RepoIndexContextRetriever`. The retrieval layer is abstracted behind interfaces so future implementations can add vector-backed or hybrid retrieval without changing the rest of the remediation pipeline.
+
 The index is local and gitignored. It excludes generated output, `.git`, `.agent\runs`, `.agent\history.jsonl`, `bin`, `obj`, `.vs`, `node_modules`, test result folders, local env scripts, run artifacts, and paths containing blocked secret/config terms.
 
 Build the index:
@@ -296,7 +298,7 @@ dotnet run --project src\RepairKit.Agent --reindex --no-ai
 
 When failures occur, `ContextRetriever` ranks indexed files against build/test output and context keywords, then `ContextBuilder` includes the highest-scoring source and test files in `context-packet.md`. If the index is missing or invalid, the old deterministic keyword fallback still runs.
 
-Later phases may add embeddings or vector retrieval, but this phase intentionally stays deterministic and dependency-light.
+Later phases may add implementations such as `VectorContextRetriever`, `HybridContextRetriever`, `QdrantContextStore`, `PgVectorContextStore`, or `AzureSearchContextStore`, but this phase intentionally stays deterministic and dependency-light.
 
 ## Docker
 

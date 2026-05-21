@@ -4,8 +4,10 @@ using System.Text.RegularExpressions;
 
 namespace RepairKit.Agent;
 
-public sealed class RepoIndexer
+public sealed class RepoIndexer : IRepoIndexer
 {
+    private readonly IRepoIndexStore _indexStore;
+
     private static readonly Regex TypeRegex = new(
         @"\b(class|record|struct|enum|interface)\s+([A-Za-z_][A-Za-z0-9_]*)",
         RegexOptions.Compiled);
@@ -31,23 +33,53 @@ public sealed class RepoIndexer
         "default", "null", "this", "base", "inheritdoc", "summary"
     };
 
+    public RepoIndexer()
+        : this(new JsonRepoIndexStore())
+    {
+    }
+
+    public RepoIndexer(IRepoIndexStore indexStore)
+    {
+        _indexStore = indexStore;
+    }
+
     public async Task<RepoIndexBuildResult> BuildAsync(
         RepairKitConfig config,
         CancellationToken cancellationToken = default)
     {
-        return await BuildAsync(
-            new RepoIndexOptions(
-                config.ResolvedRepoRoot,
-                AgentOutputPaths.GetRepoIndexFile(config),
-                config.AllowedEditPaths,
-                config.BlockedPathSegments,
-                config.BlockedPathTerms,
-                config.IndexedExtensions),
-            cancellationToken);
+        var options = new RepoIndexOptions(
+            config.ResolvedRepoRoot,
+            AgentOutputPaths.GetRepoIndexFile(config),
+            config.AllowedEditPaths,
+            config.BlockedPathSegments,
+            config.BlockedPathTerms,
+            config.IndexedExtensions);
+
+        var result = await BuildCoreAsync(options, async index =>
+            await _indexStore.WriteAsync(config, index, cancellationToken), cancellationToken);
+
+        return result;
     }
 
     public async Task<RepoIndexBuildResult> BuildAsync(
         RepoIndexOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        return await BuildCoreAsync(
+            new RepoIndexOptions(
+                options.RepoRoot,
+                options.IndexFile,
+                options.AllowedPaths,
+                options.BlockedPathSegments,
+                options.BlockedPathTerms,
+                options.IndexedExtensions),
+            async index => await RepoIndexJsonSerializer.WriteAsync(options.IndexFile, index, cancellationToken),
+            cancellationToken);
+    }
+
+    private static async Task<RepoIndexBuildResult> BuildCoreAsync(
+        RepoIndexOptions options,
+        Func<RepoIndex, Task> writeIndexAsync,
         CancellationToken cancellationToken = default)
     {
         var entries = new List<RepoIndexEntry>();
@@ -95,7 +127,7 @@ public sealed class RepoIndexer
             options.RepoRoot,
             entries.OrderBy(entry => entry.FilePath, StringComparer.OrdinalIgnoreCase).ToArray());
 
-        await RepoIndexJsonSerializer.WriteAsync(options.IndexFile, index, cancellationToken);
+        await writeIndexAsync(index);
 
         return new RepoIndexBuildResult(
             options.IndexFile,

@@ -10,10 +10,13 @@ public static class AgentProgram
             var detectedRepoRoot = RepoRootLocator.FindRepoRoot(Directory.GetCurrentDirectory());
             var config = RepairKitConfigResolver.Load(detectedRepoRoot, runOptions);
             var repoRoot = config.ResolvedRepoRoot;
+            IRepoIndexStore repoIndexStore = new JsonRepoIndexStore();
+            IRepoIndexer repoIndexer = new RepoIndexer(repoIndexStore);
+            IContextRetriever contextRetriever = new RepoIndexContextRetriever(repoIndexStore);
 
             if (runOptions.Index)
             {
-                var indexResult = await new RepoIndexer().BuildAsync(config);
+                var indexResult = await repoIndexer.BuildAsync(config);
                 Console.WriteLine("Repository index generated.");
                 Console.WriteLine($"Index: {Path.GetRelativePath(repoRoot, indexResult.IndexFile)}");
                 Console.WriteLine($"Indexed files: {indexResult.IndexedFileCount}");
@@ -23,7 +26,7 @@ public static class AgentProgram
 
             if (runOptions.Reindex)
             {
-                var indexResult = await new RepoIndexer().BuildAsync(config);
+                var indexResult = await repoIndexer.BuildAsync(config);
                 Console.WriteLine($"Repository index refreshed: {Path.GetRelativePath(repoRoot, indexResult.IndexFile)}");
             }
 
@@ -90,7 +93,7 @@ public static class AgentProgram
 
             if (!summary.OverallPassed)
             {
-                var contextBuilder = new ContextBuilder();
+                var contextBuilder = new ContextBuilder(repoIndexer, repoIndexStore, contextRetriever);
                 await contextBuilder.BuildAsync(config, runId, summary);
                 contextGenerated = true;
                 await new RelatedRunMemory().AppendToContextPacketAsync(config, runId);

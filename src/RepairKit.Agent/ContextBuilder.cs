@@ -4,6 +4,28 @@ namespace RepairKit.Agent;
 
 public sealed class ContextBuilder
 {
+    private readonly IRepoIndexer _repoIndexer;
+    private readonly IRepoIndexStore _repoIndexStore;
+    private readonly IContextRetriever _contextRetriever;
+
+    public ContextBuilder()
+        : this(
+            new RepoIndexer(new JsonRepoIndexStore()),
+            new JsonRepoIndexStore(),
+            new RepoIndexContextRetriever(new JsonRepoIndexStore()))
+    {
+    }
+
+    public ContextBuilder(
+        IRepoIndexer repoIndexer,
+        IRepoIndexStore repoIndexStore,
+        IContextRetriever contextRetriever)
+    {
+        _repoIndexer = repoIndexer;
+        _repoIndexStore = repoIndexStore;
+        _contextRetriever = contextRetriever;
+    }
+
     public async Task<ContextMetadata> BuildAsync(
         string repoRoot,
         string runId,
@@ -39,24 +61,25 @@ public sealed class ContextBuilder
 
         try
         {
-            if (!File.Exists(indexFile))
+            if (!await _repoIndexStore.ExistsAsync(config, cancellationToken))
             {
-                await new RepoIndexer().BuildAsync(config, cancellationToken);
+                await _repoIndexer.BuildAsync(config, cancellationToken);
             }
 
-            if (File.Exists(indexFile))
+            if (await _repoIndexStore.ExistsAsync(config, cancellationToken))
             {
-                var index = await RepoIndexJsonSerializer.ReadAsync(indexFile, cancellationToken);
                 var relatedHistoryTargetFiles = await ReadRelatedHistoryTargetFilesAsync(
                     config,
                     fallbackMatchResult.MatchedKeywords,
                     cancellationToken);
-                var retrievalResult = new ContextRetriever().Retrieve(
-                    failureText,
-                    fallbackMatchResult.MatchedKeywords,
-                    index,
-                    config.MaxRetrievedFiles,
-                    relatedHistoryTargetFiles);
+                var retrievalResult = await _contextRetriever.RetrieveAsync(
+                    new ContextRetrievalRequest(
+                        config,
+                        failureText,
+                        fallbackMatchResult.MatchedKeywords,
+                        relatedHistoryTargetFiles,
+                        config.MaxRetrievedFiles),
+                    cancellationToken);
 
                 if (retrievalResult.IncludedFiles.Count > 0)
                 {

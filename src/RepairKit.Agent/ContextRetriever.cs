@@ -2,8 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace RepairKit.Agent;
 
-public sealed class ContextRetriever
+public sealed class RepoIndexContextRetriever : IContextRetriever
 {
+    private readonly IRepoIndexStore _indexStore;
+
     private static readonly IReadOnlyList<string> SupportingModelFiles =
     [
         "src/RepairKit.Core/Models/Ticket.cs",
@@ -19,6 +21,29 @@ public sealed class ContextRetriever
         ["TicketStatusPolicy"] = "tests/RepairKit.Tests/TicketStatusPolicyTests.cs",
         ["TicketPriorityService"] = "tests/RepairKit.Tests/TicketPriorityServiceTests.cs"
     };
+
+    public RepoIndexContextRetriever()
+        : this(new JsonRepoIndexStore())
+    {
+    }
+
+    public RepoIndexContextRetriever(IRepoIndexStore indexStore)
+    {
+        _indexStore = indexStore;
+    }
+
+    public async Task<ContextRetrievalResult> RetrieveAsync(
+        ContextRetrievalRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var index = await _indexStore.ReadAsync(request.Config, cancellationToken);
+        return Retrieve(
+            request.FailureText,
+            request.DetectedKeywords,
+            index,
+            request.MaxFiles,
+            request.RelatedHistoryTargetFiles);
+    }
 
     public ContextRetrievalResult Retrieve(
         string failureText,

@@ -13,7 +13,7 @@ public sealed class ContextRetrieverTests
         string expectedService,
         string expectedTest)
     {
-        var result = new ContextRetriever().Retrieve(
+        var result = new RepoIndexContextRetriever().Retrieve(
             failureText,
             [],
             CreateTicketIndex(),
@@ -27,7 +27,7 @@ public sealed class ContextRetrieverTests
     [Fact]
     public void BoostsRelatedHistoryTargetFiles()
     {
-        var result = new ContextRetriever().Retrieve(
+        var result = new RepoIndexContextRetriever().Retrieve(
             "ticket failure with ambiguous output",
             [],
             CreateTicketIndex(),
