@@ -44,5 +44,23 @@ public sealed class AgentOutputPathsTests
         Assert.Equal(
             Path.Combine(repoRoot, ".agent", "runs", runId, "context-metadata.json"),
             AgentOutputPaths.GetContextMetadataFile(repoRoot, runId));
+
+        var runFolder = AgentOutputPaths.GetRunFolder(repoRoot, runId);
+
+        Assert.Equal(
+            Path.Combine(runFolder, "model-request.json"),
+            AgentOutputPaths.GetModelRequestFile(runFolder));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "model-response.raw.txt"),
+            AgentOutputPaths.GetModelResponseFile(runFolder));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "repair-plan.json"),
+            AgentOutputPaths.GetRepairPlanFile(runFolder));
+
+        Assert.Equal(
+            Path.Combine(runFolder, "ai-error.txt"),
+            AgentOutputPaths.GetAiErrorFile(runFolder));
     }
 }

@@ -52,6 +52,9 @@ secrets.json
 *.pem
 *.key
 
+# Local agent secrets
+*.local.cmd
+
 # User and machine-specific files
 *.db
 *.sqlite

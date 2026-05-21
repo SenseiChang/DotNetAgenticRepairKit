@@ -6,6 +6,7 @@ public static class AgentProgram
     {
         try
         {
+            var runOptions = AgentRunOptions.Parse(args);
             var repoRoot = RepoRootLocator.FindRepoRoot(Directory.GetCurrentDirectory());
             var runId = RunIdGenerator.Create();
             var outputFolder = AgentOutputPaths.GetRunFolder(repoRoot, runId);
@@ -61,13 +62,43 @@ public static class AgentProgram
 
             await RunSummaryJsonSerializer.WriteAsync(summaryFile, summary);
 
+            RepairPlanResult? repairPlanResult = null;
+            string? aiError = null;
+
             if (!summary.OverallPassed)
             {
                 var contextBuilder = new ContextBuilder();
                 await contextBuilder.BuildAsync(repoRoot, runId, summary);
+
+                if (!runOptions.NoAi)
+                {
+                    try
+                    {
+                        var contextPacketPath = AgentOutputPaths.GetContextPacketFile(repoRoot, runId);
+                        var contextPacket = await File.ReadAllTextAsync(contextPacketPath);
+                        var openRouterOptions = OpenRouterOptions.FromEnvironment(requireApiKey: true);
+                        var planner = new OpenRouterRepairPlanner(new HttpClient(), openRouterOptions);
+                        repairPlanResult = await planner.CreateRepairPlanAsync(
+                            contextPacket,
+                            outputFolder,
+                            CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        aiError = ex.Message;
+                        await File.WriteAllTextAsync(
+                            AgentOutputPaths.GetAiErrorFile(outputFolder),
+                            ex.Message + Environment.NewLine);
+                    }
+                }
             }
 
-            PrintSummary(summary, AgentOutputPaths.GetRelativeRunFolder(runId));
+            PrintSummary(
+                summary,
+                AgentOutputPaths.GetRelativeRunFolder(runId),
+                runOptions,
+                repairPlanResult,
+                aiError);
 
             if (!summary.BuildPassed)
             {
@@ -91,7 +122,12 @@ public static class AgentProgram
         }
     }
 
-    private static void PrintSummary(RunSummary summary, string outputFolder)
+    private static void PrintSummary(
+        RunSummary summary,
+        string outputFolder,
+        AgentRunOptions runOptions,
+        RepairPlanResult? repairPlanResult,
+        string? aiError)
     {
         Console.WriteLine();
         Console.WriteLine("Agent run complete.");
@@ -104,5 +140,26 @@ public static class AgentProgram
         Console.WriteLine($"Tests Passed: {summary.TestsPassed}");
         Console.WriteLine($"Overall Passed: {summary.OverallPassed}");
         Console.WriteLine($"Output: {outputFolder}");
+
+        if (!summary.OverallPassed)
+        {
+            if (runOptions.NoAi)
+            {
+                Console.WriteLine("AI Planning: skipped (--no-ai)");
+            }
+            else if (repairPlanResult is not null)
+            {
+                Console.WriteLine($"Model Used: {repairPlanResult.Model}");
+                Console.WriteLine($"Repair Plan: {repairPlanResult.RepairPlanPath}");
+                Console.WriteLine($"Risk Level: {repairPlanResult.Plan.RiskLevel}");
+                Console.WriteLine($"Target Files: {string.Join(", ", repairPlanResult.Plan.TargetFiles)}");
+                Console.WriteLine($"Change Count: {repairPlanResult.Plan.Changes.Count}");
+            }
+            else
+            {
+                Console.WriteLine("AI Planning: failed");
+                Console.WriteLine($"AI Error: {aiError}");
+            }
+        }
     }
 }

@@ -41,4 +41,24 @@ public static class AgentOutputPaths
     {
         return Path.Combine(GetRunFolder(repoRoot, runId), "context-metadata.json");
     }
+
+    public static string GetModelRequestFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "model-request.json");
+    }
+
+    public static string GetModelResponseFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "model-response.raw.txt");
+    }
+
+    public static string GetRepairPlanFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "repair-plan.json");
+    }
+
+    public static string GetAiErrorFile(string runFolder)
+    {
+        return Path.Combine(runFolder, "ai-error.txt");
+    }
 }

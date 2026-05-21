@@ -47,7 +47,7 @@ dotnet run --project src\RepairKit.Agent
 
 ## Agent Runner v1
 
-The current agent runner is deterministic and does not call any AI services. It first runs `dotnet build --no-incremental`, then runs `dotnet test --no-build` only if the build succeeds. This avoids stale incremental build output when controlled repair scenarios overwrite source files.
+The current agent runner first runs `dotnet build --no-incremental`, then runs `dotnet test --no-build` only if the build succeeds. This avoids stale incremental build output when controlled repair scenarios overwrite source files.
 
 Each run writes structured output under `.agent\runs\<runId>\`:
 
@@ -60,13 +60,41 @@ When a build or test run fails, the agent also writes deterministic repair-plann
 - `context-packet.md`
 - `context-metadata.json`
 
+By default, failed runs send the context packet to OpenRouter and write a plan-only AI repair plan. Phase 5 does not apply patches or modify source files.
+
+- `model-request.json`
+- `model-response.raw.txt`
+- `repair-plan.json`
+- `ai-error.txt` if AI planning fails
+
+Environment variables:
+
+- `OPENROUTER_API_KEY` is required for AI planning.
+- `REPAIRKIT_MODEL` is optional and defaults to `openai/gpt-5.2`.
+- `REPAIRKIT_OPENROUTER_APP_TITLE` is optional and defaults to `DotNetAgenticRepairKit`.
+- `REPAIRKIT_OPENROUTER_HTTP_REFERER` is optional.
+
 Run it from the repository root:
 
 ```cmd
 dotnet run --project src\RepairKit.Agent
 ```
 
-The agent currently only builds, runs tests, records output, and collects deterministic failure context. AI planning, repair selection, and patch application are reserved for later phases.
+Run without AI planning:
+
+```cmd
+dotnet run --project src\RepairKit.Agent -- --no-ai
+```
+
+Run with an explicit model:
+
+```cmd
+set OPENROUTER_API_KEY=<your key>
+set REPAIRKIT_MODEL=openai/gpt-5.2
+dotnet run --project src\RepairKit.Agent
+```
+
+`--plan-only` is the default safety behavior. The agent can call OpenRouter and write `repair-plan.json`, but repair selection and patch application are reserved for later phases.
 
 ## Documentation
 
