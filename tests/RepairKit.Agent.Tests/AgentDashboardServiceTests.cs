@@ -94,6 +94,110 @@ public sealed class AgentDashboardServiceTests : IDisposable
         Assert.Equal("# Report", artifact.Content);
     }
 
+    [Fact]
+    public async Task ReadsToolEventsAndSkipsMalformedLines()
+    {
+        WriteConfig();
+        WriteHistory(CreateEntry("run-1"));
+        var runFolder = Path.Combine(_repoRoot, ".agent", "runs", "run-1");
+        Directory.CreateDirectory(runFolder);
+        File.WriteAllText(
+            Path.Combine(runFolder, "tool-events.jsonl"),
+            "not json" + Environment.NewLine +
+            """
+{"toolName":"build_context_packet","startedUtc":"2026-05-21T12:00:00Z","endedUtc":"2026-05-21T12:00:01Z","durationMs":1000,"succeeded":true,"summary":"ok","errorMessage":null}
+""");
+        var service = new AgentDashboardService(_repoRoot);
+
+        var events = await service.ReadToolEventsAsync("run-1");
+
+        var item = Assert.Single(events);
+        Assert.Equal("build_context_packet", item.ToolName);
+        Assert.True(item.Succeeded);
+    }
+
+    [Fact]
+    public async Task ReadsContextMetadataSummary()
+    {
+        WriteConfig();
+        WriteHistory(CreateEntry("run-1"));
+        var runFolder = Path.Combine(_repoRoot, ".agent", "runs", "run-1");
+        Directory.CreateDirectory(runFolder);
+        var packetPath = Path.Combine(runFolder, "context-packet.md");
+        File.WriteAllText(packetPath, "context");
+        File.WriteAllText(
+            Path.Combine(runFolder, "context-metadata.json"),
+            $$"""
+{
+  "retrievalMode": "repo-index",
+  "indexFile": "{{Path.Combine(_repoRoot, ".agent", "repo-index.json").Replace("\\", "\\\\")}}",
+  "contextPacketFile": "{{packetPath.Replace("\\", "\\\\")}}",
+  "truncated": false,
+  "matchedKeywords": ["TicketSlaService"],
+  "includedFiles": ["src/RepairKit.Core/Services/TicketSlaService.cs"],
+  "excludedFiles": ["src/Other.cs"],
+  "retrievedFiles": [
+    {
+      "filePath": "src/RepairKit.Core/Services/TicketSlaService.cs",
+      "score": 100,
+      "reasons": ["file name match"]
+    }
+  ]
+}
+""");
+        var service = new AgentDashboardService(_repoRoot);
+
+        var metadata = await service.ReadContextMetadataSummaryAsync("run-1");
+
+        Assert.True(metadata.Exists);
+        Assert.Equal("repo-index", metadata.RetrievalMode);
+        Assert.Equal(80000, metadata.MaxContextCharacters);
+        Assert.Equal(7, metadata.ActualContextCharacters);
+        Assert.False(metadata.Truncated);
+        Assert.Contains("TicketSlaService", metadata.DetectedKeywords);
+        Assert.Contains("src/RepairKit.Core/Services/TicketSlaService.cs", metadata.IncludedFiles);
+        Assert.Contains("src/Other.cs", metadata.ExcludedFiles);
+        Assert.Equal(100, Assert.Single(metadata.RetrievedFiles).Score);
+    }
+
+    [Fact]
+    public async Task MissingContextMetadataReturnsSafeSummary()
+    {
+        WriteConfig();
+        var service = new AgentDashboardService(_repoRoot);
+
+        var metadata = await service.ReadContextMetadataSummaryAsync("run-1");
+
+        Assert.False(metadata.Exists);
+        Assert.Equal("not available", metadata.Message);
+    }
+
+    [Fact]
+    public void ReadsRepoIndexStatus()
+    {
+        WriteConfig();
+        var agentFolder = Path.Combine(_repoRoot, ".agent");
+        Directory.CreateDirectory(agentFolder);
+        File.WriteAllText(
+            Path.Combine(agentFolder, "repo-index.json"),
+            """
+{
+  "generatedUtc": "2026-05-21T12:00:00Z",
+  "entries": [
+    { "filePath": "src/A.cs" },
+    { "filePath": "src/B.cs" }
+  ]
+}
+""");
+        var service = new AgentDashboardService(_repoRoot);
+
+        var status = service.GetRepoIndexStatus();
+
+        Assert.True(status.Exists);
+        Assert.Equal(2, status.IndexedFileCount);
+        Assert.NotNull(status.GeneratedUtc);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_repoRoot))
@@ -109,7 +213,8 @@ public sealed class AgentDashboardServiceTests : IDisposable
             Path.Combine(_repoRoot, "repairkit.config.json"),
             """
 {
-  "agentOutputPath": ".agent"
+  "agentOutputPath": ".agent",
+  "maxContextCharacters": 80000
 }
 """);
     }
@@ -162,4 +267,3 @@ public sealed class AgentDashboardServiceTests : IDisposable
             null);
     }
 }
-

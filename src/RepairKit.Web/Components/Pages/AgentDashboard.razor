@@ -13,6 +13,32 @@
 }
 
 <div class="dashboard-section">
+    <h2>Repo Index</h2>
+    @if (RepoIndexStatus is null)
+    {
+        <p class="text-muted">Repo index status is not available.</p>
+    }
+    else
+    {
+        <dl class="row">
+            <dt class="col-sm-3">Index exists</dt>
+            <dd class="col-sm-9">@BoolBadge(RepoIndexStatus.Exists)</dd>
+            <dt class="col-sm-3">Index path</dt>
+            <dd class="col-sm-9">@RepoIndexStatus.IndexPath</dd>
+            <dt class="col-sm-3">Indexed files</dt>
+            <dd class="col-sm-9">@(RepoIndexStatus.IndexedFileCount?.ToString() ?? "not available")</dd>
+            <dt class="col-sm-3">Generated UTC</dt>
+            <dd class="col-sm-9">@FormatDateTime(RepoIndexStatus.GeneratedUtc)</dd>
+            @if (!string.IsNullOrWhiteSpace(RepoIndexStatus.Message))
+            {
+                <dt class="col-sm-3">Status</dt>
+                <dd class="col-sm-9">@RepoIndexStatus.Message</dd>
+            }
+        </dl>
+    }
+</div>
+
+<div class="dashboard-section">
     <h2>Recent Runs</h2>
     @if (Runs.Count == 0)
     {
@@ -26,6 +52,7 @@
                     <tr>
                         <th>Run ID</th>
                         <th>Started UTC</th>
+                        <th>Started Local</th>
                         <th>Final Outcome</th>
                         <th>Initial Tests Passed</th>
                         <th>AI Planning Succeeded</th>
@@ -43,6 +70,7 @@
                         <tr class="@(run.RunId == RunId ? "table-active" : null)">
                             <td><a href="@GetRunHref(run.RunId)">@run.RunId</a></td>
                             <td>@run.StartedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@FormatLocal(run.StartedUtc)</td>
                             <td><span class="badge text-bg-secondary">@run.FinalOutcome</span></td>
                             <td>@BoolBadge(run.InitialTestsPassed)</td>
                             <td>@BoolBadge(run.AiPlanningSucceeded)</td>
@@ -70,6 +98,10 @@
             <dd class="col-sm-9">@selected.RunId</dd>
             <dt class="col-sm-3">Final outcome</dt>
             <dd class="col-sm-9">@selected.FinalOutcome</dd>
+            <dt class="col-sm-3">Started UTC</dt>
+            <dd class="col-sm-9">@selected.StartedUtc.ToString("O")</dd>
+            <dt class="col-sm-3">Started local</dt>
+            <dd class="col-sm-9">@FormatLocal(selected.StartedUtc)</dd>
             <dt class="col-sm-3">Model</dt>
             <dd class="col-sm-9">@(selected.Model ?? "n/a")</dd>
             <dt class="col-sm-3">Token usage</dt>
@@ -85,6 +117,100 @@
             <dt class="col-sm-3">Validation status</dt>
             <dd class="col-sm-9">@NullableBoolBadge(selected.ValidationOverallPassed)</dd>
         </dl>
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Context Metadata</h2>
+        @if (SelectedDetails.ContextMetadata is null || !SelectedDetails.ContextMetadata.Exists)
+        {
+            <p class="text-muted">@(SelectedDetails.ContextMetadata?.Message ?? "not available")</p>
+        }
+        else
+        {
+            var metadata = SelectedDetails.ContextMetadata;
+            <dl class="row">
+                <dt class="col-sm-3">Retrieval mode</dt>
+                <dd class="col-sm-9">@metadata.RetrievalMode</dd>
+                <dt class="col-sm-3">Index file</dt>
+                <dd class="col-sm-9">@(metadata.IndexFile ?? "not available")</dd>
+                <dt class="col-sm-3">Max context chars</dt>
+                <dd class="col-sm-9">@(metadata.MaxContextCharacters?.ToString() ?? "not available")</dd>
+                <dt class="col-sm-3">Actual context chars</dt>
+                <dd class="col-sm-9">@(metadata.ActualContextCharacters?.ToString() ?? "not available")</dd>
+                <dt class="col-sm-3">Truncated</dt>
+                <dd class="col-sm-9">@NullableBoolBadge(metadata.Truncated)</dd>
+                <dt class="col-sm-3">Detected keywords</dt>
+                <dd class="col-sm-9">@FormatList(metadata.DetectedKeywords)</dd>
+                <dt class="col-sm-3">Included files</dt>
+                <dd class="col-sm-9">@FormatList(metadata.IncludedFiles)</dd>
+                <dt class="col-sm-3">Excluded files</dt>
+                <dd class="col-sm-9">@FormatList(metadata.ExcludedFiles)</dd>
+            </dl>
+
+            @if (metadata.RetrievedFiles.Count > 0)
+            {
+                <h3 class="h5">Retrieved Files</h3>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle agent-runs-table">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Score</th>
+                                <th>Reasons</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in metadata.RetrievedFiles)
+                            {
+                                <tr>
+                                    <td>@file.FilePath</td>
+                                    <td>@file.Score</td>
+                                    <td>@FormatList(file.Reasons)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="dashboard-section">
+        <h2>Tool Events</h2>
+        @if (SelectedDetails.ToolEvents is null || SelectedDetails.ToolEvents.Count == 0)
+        {
+            <p class="text-muted">not available</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle agent-runs-table">
+                    <thead>
+                        <tr>
+                            <th>Tool</th>
+                            <th>Started UTC</th>
+                            <th>Duration ms</th>
+                            <th>Succeeded</th>
+                            <th>Summary</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var toolEvent in SelectedDetails.ToolEvents)
+                        {
+                            <tr>
+                                <td>@toolEvent.ToolName</td>
+                                <td>@toolEvent.StartedUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@toolEvent.DurationMs</td>
+                                <td>@BoolBadge(toolEvent.Succeeded)</td>
+                                <td>@toolEvent.Summary</td>
+                                <td>@(toolEvent.ErrorMessage ?? "n/a")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 
     <div class="dashboard-section">
@@ -111,6 +237,8 @@ else if (!string.IsNullOrWhiteSpace(RunId))
 
     private AgentRunDetails? SelectedDetails { get; set; }
 
+    private RepoIndexStatus? RepoIndexStatus { get; set; }
+
     private string? ErrorMessage { get; set; }
 
     protected override async Task OnParametersSetAsync()
@@ -118,6 +246,7 @@ else if (!string.IsNullOrWhiteSpace(RunId))
         try
         {
             Runs = await DashboardService.GetRecentRunsAsync();
+            RepoIndexStatus = DashboardService.GetRepoIndexStatus();
             SelectedDetails = null;
             ErrorMessage = null;
 
@@ -130,6 +259,7 @@ else if (!string.IsNullOrWhiteSpace(RunId))
         {
             ErrorMessage = ex.Message;
             Runs = [];
+            RepoIndexStatus = null;
             SelectedDetails = null;
         }
     }
@@ -164,5 +294,14 @@ else if (!string.IsNullOrWhiteSpace(RunId))
     {
         return value?.ToString() ?? "n/a";
     }
-}
 
+    private static string FormatDateTime(DateTime? value)
+    {
+        return value?.ToString("O") ?? "not available";
+    }
+
+    private static string FormatLocal(DateTime value)
+    {
+        return value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+    }
+}
