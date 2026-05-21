@@ -1,14 +1,20 @@
 # DotNetAgenticRepairKit
 
-DotNetAgenticRepairKit is a custom .NET agentic AI remediation skeleton built as a public portfolio demo. It shows how a .NET solution can detect a controlled failure, collect deterministic context, ask an AI model for a repair plan, require human approval, safely apply a patch, validate the result, and present the run in a read-only Blazor dashboard.
+[![CI](https://github.com/SenseiChang/DotNetAgenticRepairKit/actions/workflows/ci.yml/badge.svg)](https://github.com/SenseiChang/DotNetAgenticRepairKit/actions/workflows/ci.yml)
+
+DotNetAgenticRepairKit is a custom .NET agentic AI remediation framework designed to bring AI-assisted repair planning, human approval, safe patching, validation, and observability into C#/.NET software maintenance workflows.
+
+The pipeline can detect failing builds or tests, collect deterministic source context, generate OpenRouter-backed repair plans, require explicit approval, apply guarded full-file patches, rerun validation, capture Git diffs and repair reports, persist local run history, and display run artifacts in a read-only Blazor dashboard.
 
 No real API keys or secrets are committed.
 
 ## Project Overview
 
-The sample application domain is a **Support Ticket Triage Dashboard**. It includes ticket severity, customer tier, SLA due dates, assignment, escalation, and status transition rules. Those rules are intentionally small and testable so the repository can demonstrate software remediation without hiding the important workflow behind a large application.
+The repository includes a **Support Ticket Triage Dashboard** as a reference integration target for exercising the remediation workflow end to end. The domain includes ticket severity, customer tier, SLA due dates, assignment, escalation, and status transition rules. These rules are intentionally focused and testable so the agent pipeline can be validated clearly before adapting the framework to larger .NET applications.
 
-The console agent, `RepairKit.Agent`, is the remediation workflow host. The Blazor app, `RepairKit.Web`, provides a read-only view of the sample app and local agent run artifacts.
+The console agent, `RepairKit.Agent`, is the remediation workflow host. It performs deterministic build/test execution, context generation, AI repair planning, approval handling, safe patch application, validation, reporting, and history capture.
+
+The Blazor app, `RepairKit.Web`, provides both the reference ticket triage interface and a read-only dashboard for inspecting local agent run artifacts.
 
 ## What This Demonstrates
 
@@ -102,6 +108,12 @@ Run the agent:
 ```cmd
 dotnet run --project src\RepairKit.Agent
 ```
+
+## Continuous Integration
+
+GitHub Actions runs restore, build, and tests for `DotNetAgenticRepairKit.sln` on pushes to `main`, pull requests to `main`, and manual dispatches.
+
+CI intentionally does not call OpenRouter, require `OPENROUTER_API_KEY`, run controlled repair scenarios, or apply patches. AI repair workflows remain local/manual unless a future workflow explicitly adds controlled agent planning.
 
 ## Demo Flow
 
