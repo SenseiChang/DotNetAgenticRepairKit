@@ -25,7 +25,7 @@ DotNetAgenticRepairKit is split into a small sample application and a determinis
 +----------+-----------+     +------+----------------+
 | RepairKit.Infrastructure |  | RepairKit.Agent       |
 | Dashboard file reading   |  | Console workflow      |
-| Shared infrastructure    |  | build/test/AI/patch   |
+| Shared infrastructure    |  | tools/build/AI/patch  |
 +--------------------------+  +-----------------------+
 ```
 
@@ -100,6 +100,35 @@ ContextBuilder
 
 Future stores such as Qdrant, Postgres/pgvector, Chroma, or Azure AI Search can be added behind these contracts without changing the agent pipeline.
 
+## Tool Execution Layer
+
+`RepairKit.Agent` includes an MCP-inspired internal tool abstraction:
+
+```text
+AgentProgram
+   |
+   v
+AgentToolRegistry
+   |
+   +--> build_solution
+   +--> run_tests
+   +--> build_repo_index
+   +--> build_context_packet
+   +--> capture_git_diff
+   +--> write_repair_report
+   +--> read_artifact
+```
+
+Each tool exposes:
+
+- a stable name
+- a description
+- a JSON input schema
+- a structured `AgentToolResult`
+- run-local audit events in `tool-events.jsonl`
+
+The current implementation is local-only and is not a full MCP server. The abstraction creates a seam where future MCP hosting or LLM tool-calling integration can wrap the same tool registry without changing the core remediation pipeline.
+
 ## Data And Artifact Flow
 
 ```text
@@ -107,6 +136,7 @@ Future stores such as Qdrant, Postgres/pgvector, Chroma, or Azure AI Search can 
 build-output.txt
 test-output.txt
 run-summary.json
+tool-events.jsonl
         |
         v
 context-packet.md

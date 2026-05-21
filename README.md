@@ -300,6 +300,24 @@ When failures occur, `ContextRetriever` ranks indexed files against build/test o
 
 Later phases may add implementations such as `VectorContextRetriever`, `HybridContextRetriever`, `QdrantContextStore`, `PgVectorContextStore`, or `AzureSearchContextStore`, but this phase intentionally stays deterministic and dependency-light.
 
+## MCP-inspired Tool Abstraction
+
+`RepairKit.Agent` includes an MCP-inspired internal tool abstraction. Tools expose names, descriptions, lightweight JSON input schemas, structured results, and run-local audit events in `tool-events.jsonl`.
+
+This is not a full MCP server and does not add external MCP packages. The current implementation is local-only, but it creates a seam for future MCP hosting or LLM tool-calling integration.
+
+Initial tools include:
+
+- `build_solution`
+- `run_tests`
+- `build_repo_index`
+- `build_context_packet`
+- `capture_git_diff`
+- `write_repair_report`
+- `read_artifact`
+
+The existing workflow now uses selected tools for repository indexing, context packet generation, Git diff capture, and repair report writing while preserving the current command-line behavior.
+
 ## Docker
 
 Docker support is optional and does not replace normal local CMD usage. The image runs `RepairKit.Agent` in a .NET SDK container and does not bake in API keys or other secrets.

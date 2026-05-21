@@ -19,5 +19,13 @@ public static class RunSummaryJsonSerializer
     {
         return File.WriteAllTextAsync(path, Serialize(summary));
     }
-}
 
+    public static async Task<RunSummary> ReadAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        return JsonSerializer.Deserialize<RunSummary>(
+            await File.ReadAllTextAsync(path, cancellationToken),
+            Options) ?? throw new InvalidOperationException($"Run summary could not be read: {path}");
+    }
+}

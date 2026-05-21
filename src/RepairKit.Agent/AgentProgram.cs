@@ -1,5 +1,7 @@
 namespace RepairKit.Agent;
 
+using System.Text.Json;
+
 public static class AgentProgram
 {
     public static async Task<int> RunAsync(string[] args)
@@ -13,21 +15,38 @@ public static class AgentProgram
             IRepoIndexStore repoIndexStore = new JsonRepoIndexStore();
             IRepoIndexer repoIndexer = new RepoIndexer(repoIndexStore);
             IContextRetriever contextRetriever = new RepoIndexContextRetriever(repoIndexStore);
+            var toolRegistry = DefaultAgentTools.Create(repoIndexer, repoIndexStore, contextRetriever);
 
             if (runOptions.Index)
             {
-                var indexResult = await repoIndexer.BuildAsync(config);
+                var toolContext = new AgentToolContext(config, repoRoot, "index", string.Empty, new CommandRunner());
+                var toolResult = await toolRegistry.Get("build_repo_index").ExecuteAsync(toolContext, "{}", CancellationToken.None);
+                if (!toolResult.Succeeded)
+                {
+                    Console.Error.WriteLine(toolResult.ErrorMessage);
+                    return 1;
+                }
+
+                var output = JsonDocument.Parse(toolResult.OutputJson).RootElement;
                 Console.WriteLine("Repository index generated.");
-                Console.WriteLine($"Index: {Path.GetRelativePath(repoRoot, indexResult.IndexFile)}");
-                Console.WriteLine($"Indexed files: {indexResult.IndexedFileCount}");
-                Console.WriteLine($"Skipped files: {indexResult.SkippedFileCount}");
+                Console.WriteLine($"Index: {Path.GetRelativePath(repoRoot, output.GetProperty("indexFile").GetString()!)}");
+                Console.WriteLine($"Indexed files: {output.GetProperty("indexedFileCount").GetInt32()}");
+                Console.WriteLine($"Skipped files: {output.GetProperty("skippedFileCount").GetInt32()}");
                 return 0;
             }
 
             if (runOptions.Reindex)
             {
-                var indexResult = await repoIndexer.BuildAsync(config);
-                Console.WriteLine($"Repository index refreshed: {Path.GetRelativePath(repoRoot, indexResult.IndexFile)}");
+                var toolContext = new AgentToolContext(config, repoRoot, "reindex", string.Empty, new CommandRunner());
+                var toolResult = await toolRegistry.Get("build_repo_index").ExecuteAsync(toolContext, "{}", CancellationToken.None);
+                if (!toolResult.Succeeded)
+                {
+                    Console.Error.WriteLine(toolResult.ErrorMessage);
+                    return 1;
+                }
+
+                var output = JsonDocument.Parse(toolResult.OutputJson).RootElement;
+                Console.WriteLine($"Repository index refreshed: {Path.GetRelativePath(repoRoot, output.GetProperty("indexFile").GetString()!)}");
             }
 
             var runId = RunIdGenerator.Create();
@@ -36,6 +55,13 @@ public static class AgentProgram
             Directory.CreateDirectory(outputFolder);
 
             var runner = new CommandRunner();
+            var toolContextForRun = new AgentToolContext(
+                config,
+                repoRoot,
+                runId,
+                outputFolder,
+                runner,
+                new ConsoleUserOutput());
             var startedUtc = DateTime.UtcNow;
             var buildArtifactsFolder = AgentOutputPaths.GetBuildArtifactsFolder(config, runId);
             Directory.CreateDirectory(buildArtifactsFolder);
@@ -93,8 +119,15 @@ public static class AgentProgram
 
             if (!summary.OverallPassed)
             {
-                var contextBuilder = new ContextBuilder(repoIndexer, repoIndexStore, contextRetriever);
-                await contextBuilder.BuildAsync(config, runId, summary);
+                var contextToolResult = await toolRegistry.Get("build_context_packet").ExecuteAsync(
+                    toolContextForRun,
+                    "{}",
+                    CancellationToken.None);
+                if (!contextToolResult.Succeeded)
+                {
+                    throw new InvalidOperationException(contextToolResult.ErrorMessage ?? "Context packet generation failed.");
+                }
+
                 contextGenerated = true;
                 await new RelatedRunMemory().AppendToContextPacketAsync(config, runId);
 
@@ -128,9 +161,23 @@ public static class AgentProgram
                                 runId,
                                 CancellationToken.None);
 
-                            var gitDiffCapture = new GitDiffCapture(new CommandRunner());
-                            gitDiffResult = await gitDiffCapture.CaptureAsync(config, runId);
-                            repairReportPath = await new RepairReportWriter().WriteAsync(config, runId);
+                            var gitDiffToolResult = await toolRegistry.Get("capture_git_diff").ExecuteAsync(
+                                toolContextForRun,
+                                "{}",
+                                CancellationToken.None);
+                            gitDiffResult = CreateGitDiffResult(gitDiffToolResult);
+
+                            var reportToolResult = await toolRegistry.Get("write_repair_report").ExecuteAsync(
+                                toolContextForRun,
+                                "{}",
+                                CancellationToken.None);
+                            if (reportToolResult.Succeeded)
+                            {
+                                repairReportPath = JsonDocument.Parse(reportToolResult.OutputJson)
+                                    .RootElement
+                                    .GetProperty("reportPath")
+                                    .GetString();
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -191,6 +238,23 @@ public static class AgentProgram
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    private static GitDiffCaptureResult CreateGitDiffResult(AgentToolResult toolResult)
+    {
+        var output = JsonDocument.Parse(toolResult.OutputJson).RootElement;
+        var diffFile = output.TryGetProperty("diffFile", out var diffFileProperty) && diffFileProperty.ValueKind != JsonValueKind.Null
+            ? diffFileProperty.GetString()
+            : null;
+        var errorFile = output.TryGetProperty("errorFile", out var errorFileProperty) && errorFileProperty.ValueKind != JsonValueKind.Null
+            ? errorFileProperty.GetString()
+            : null;
+
+        return new GitDiffCaptureResult(
+            toolResult.Succeeded,
+            diffFile,
+            errorFile,
+            toolResult.ErrorMessage);
     }
 
     private static void PrintSummary(
