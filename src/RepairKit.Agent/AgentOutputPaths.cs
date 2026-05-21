@@ -7,6 +7,11 @@ public static class AgentOutputPaths
         return Path.Combine(repoRoot, ".agent", "runs", runId);
     }
 
+    public static string GetAgentFolder(string repoRoot)
+    {
+        return Path.Combine(repoRoot, ".agent");
+    }
+
     public static string GetRelativeRunFolder(string runId)
     {
         return Path.Combine(".agent", "runs", runId);
@@ -117,5 +122,10 @@ public static class AgentOutputPaths
     public static string GetRepairReportFile(string repoRoot, string runId)
     {
         return Path.Combine(GetRunFolder(repoRoot, runId), "repair-report.md");
+    }
+
+    public static string GetHistoryFile(string repoRoot)
+    {
+        return Path.Combine(GetAgentFolder(repoRoot), "history.jsonl");
     }
 }

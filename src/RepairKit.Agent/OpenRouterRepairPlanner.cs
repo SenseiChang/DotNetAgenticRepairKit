@@ -89,7 +89,10 @@ public sealed class OpenRouterRepairPlanner : IAiRepairPlanner
             _options.Model,
             repairPlanPath,
             modelRequestPath,
-            modelResponsePath);
+            modelResponsePath,
+            chatResponse.Usage?.PromptTokens,
+            chatResponse.Usage?.CompletionTokens,
+            chatResponse.Usage?.TotalTokens);
     }
 
     public static OpenRouterChatRequest CreateRequest(string model, string contextPacket)
@@ -161,4 +164,3 @@ Context packet:
         };
     }
 }
-

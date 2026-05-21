@@ -17,8 +17,13 @@ public sealed record OpenRouterResponseFormat(
     string Type);
 
 public sealed record OpenRouterChatResponse(
-    IReadOnlyList<OpenRouterChoice> Choices);
+    IReadOnlyList<OpenRouterChoice> Choices,
+    OpenRouterUsage? Usage);
 
 public sealed record OpenRouterChoice(
     OpenRouterChatMessage Message);
 
+public sealed record OpenRouterUsage(
+    [property: JsonPropertyName("prompt_tokens")] int? PromptTokens,
+    [property: JsonPropertyName("completion_tokens")] int? CompletionTokens,
+    [property: JsonPropertyName("total_tokens")] int? TotalTokens);

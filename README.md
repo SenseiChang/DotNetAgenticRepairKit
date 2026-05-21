@@ -78,6 +78,10 @@ Applied changes are backed up under `.agent\runs\<runId>\backups\` before any so
 
 After patch validation, the agent captures `git diff -- src tests` to `git-diff.patch` and writes a human-readable `repair-report.md` summarizing the run, plan, approval decision, patch result, validation result, and diff excerpt.
 
+Each completed run also appends a compact local history entry to `.agent\history.jsonl`. This file is gitignored. It is intended for lightweight memory and future dashboard features. It stores run metadata such as outcomes, target files, risk level, approval status, validation status, and token usage when OpenRouter provides it. It does not store API keys, full prompts, full context packets, model responses, source files, or full diffs.
+
+When a new failure context is generated, the agent reads recent local history and appends a short `Recent Related Runs` section to `context-packet.md` if prior runs mention the same ticket service. That memory section contains only run IDs, outcomes, summaries, target files, and validation status.
+
 Environment variables:
 
 - `OPENROUTER_API_KEY` is required for AI planning.
@@ -175,6 +179,20 @@ Inspect the report and diff:
 ```cmd
 type .agent\runs\<runId>\repair-report.md
 type .agent\runs\<runId>\git-diff.patch
+```
+
+Inspect local history:
+
+```cmd
+type .agent\history.jsonl
+```
+
+You can run the agent multiple times and inspect appended history entries:
+
+```cmd
+dotnet run --project src\RepairKit.Agent -- --no-ai
+dotnet run --project src\RepairKit.Agent -- --no-ai
+type .agent\history.jsonl
 ```
 
 ## Documentation

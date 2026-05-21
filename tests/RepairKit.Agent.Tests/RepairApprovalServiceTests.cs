@@ -23,6 +23,22 @@ public sealed class RepairApprovalServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ManualApplyIsCaseInsensitive()
+    {
+        var service = new RepairApprovalService(new FakeUserPrompt("apply"), new NullUserOutput());
+
+        var decision = await service.RequestApprovalAsync(
+            "20260521-120000",
+            CreatePlan("low"),
+            new AgentRunOptions(false, false, false, true, false),
+            _runFolder);
+
+        Assert.NotNull(decision);
+        Assert.True(decision.Approved);
+        Assert.Equal("APPLY", decision.DecisionText);
+    }
+
+    [Fact]
     public async Task NonApplyInputProducesApprovedFalse()
     {
         var service = new RepairApprovalService(new FakeUserPrompt("no"), new NullUserOutput());

@@ -5,5 +5,7 @@ public sealed record RepairPlanResult(
     string Model,
     string RepairPlanPath,
     string ModelRequestPath,
-    string ModelResponsePath);
-
+    string ModelResponsePath,
+    int? PromptTokens,
+    int? CompletionTokens,
+    int? TotalTokens);

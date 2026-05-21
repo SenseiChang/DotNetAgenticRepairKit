@@ -42,7 +42,7 @@ public sealed class RepairApprovalService
             PrintApprovalPrompt(plan);
             var input = _userPrompt.ReadLine();
             var decisionText = string.IsNullOrWhiteSpace(input) ? "not provided" : input;
-            var approved = string.Equals(input, "APPLY", StringComparison.Ordinal);
+            var approved = string.Equals(input, "APPLY", StringComparison.OrdinalIgnoreCase);
 
             decision = CreateDecision(
                 runId,

@@ -78,5 +78,9 @@ public sealed class AgentOutputPathsTests
         Assert.Equal(
             Path.Combine(runFolder, "repair-report.md"),
             AgentOutputPaths.GetRepairReportFile(repoRoot, runId));
+
+        Assert.Equal(
+            Path.Combine(repoRoot, ".agent", "history.jsonl"),
+            AgentOutputPaths.GetHistoryFile(repoRoot));
     }
 }

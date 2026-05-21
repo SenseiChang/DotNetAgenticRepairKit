@@ -68,11 +68,14 @@ public static class AgentProgram
             GitDiffCaptureResult? gitDiffResult = null;
             string? repairReportPath = null;
             string? aiError = null;
+            var contextGenerated = false;
 
             if (!summary.OverallPassed)
             {
                 var contextBuilder = new ContextBuilder();
                 await contextBuilder.BuildAsync(repoRoot, runId, summary);
+                contextGenerated = true;
+                await new RelatedRunMemory().AppendToContextPacketAsync(repoRoot, runId);
 
                 if (!runOptions.NoAi)
                 {
@@ -123,6 +126,18 @@ public static class AgentProgram
                 summary,
                 AgentOutputPaths.GetRelativeRunFolder(runId),
                 runOptions,
+                repairPlanResult,
+                approvalDecision,
+                patchApplicationResult,
+                gitDiffResult,
+                repairReportPath,
+                aiError);
+
+            await TryAppendHistoryAsync(
+                repoRoot,
+                summary,
+                runOptions,
+                contextGenerated,
                 repairPlanResult,
                 approvalDecision,
                 patchApplicationResult,
@@ -261,6 +276,40 @@ public static class AgentProgram
             }
 
             Console.WriteLine("Next step: Review generated artifacts before committing changes.");
+        }
+    }
+
+    private static async Task TryAppendHistoryAsync(
+        string repoRoot,
+        RunSummary summary,
+        AgentRunOptions runOptions,
+        bool contextGenerated,
+        RepairPlanResult? repairPlanResult,
+        RepairApprovalDecision? approvalDecision,
+        PatchApplicationResult? patchApplicationResult,
+        GitDiffCaptureResult? gitDiffResult,
+        string? repairReportPath,
+        string? aiError)
+    {
+        try
+        {
+            var entry = AgentRunHistoryEntryFactory.Create(
+                summary,
+                runOptions,
+                contextGenerated,
+                repairPlanResult,
+                approvalDecision,
+                patchApplicationResult,
+                gitDiffResult,
+                repairReportPath,
+                aiError);
+
+            await new AgentRunHistoryWriter().AppendAsync(repoRoot, entry);
+            Console.WriteLine($"History: {Path.Combine(".agent", "history.jsonl")}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: failed to append agent history: {ex.Message}");
         }
     }
 }
