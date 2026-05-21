@@ -49,6 +49,20 @@ dotnet run --project src\RepairKit.Agent
 
 The current agent runner first runs `dotnet build --no-incremental`, then runs `dotnet test --no-build` only if the build succeeds. This avoids stale incremental build output when controlled repair scenarios overwrite source files.
 
+The agent loads `repairkit.config.json` from the repository root by default. If the file is missing, it falls back to built-in defaults for this demo. This configuration is what makes the repair loop reusable for other .NET solutions.
+
+Configurable values include:
+
+- target solution path
+- target repository root
+- agent output path
+- build/test command templates
+- Git diff command
+- allowed edit paths
+- blocked path segments and secret/config terms
+- maximum context size
+- recent history limit
+
 Each run writes structured output under `.agent\runs\<runId>\`:
 
 - `build-output.txt`
@@ -93,6 +107,24 @@ Run it from the repository root:
 
 ```cmd
 dotnet run --project src\RepairKit.Agent
+```
+
+Run with an explicit config:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --config repairkit.config.json
+```
+
+Target another solution directly:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --solution H:\Projects\SomeOtherApp\SomeOtherApp.sln --repo-root H:\Projects\SomeOtherApp
+```
+
+Use a custom agent output folder:
+
+```cmd
+dotnet run --project src\RepairKit.Agent --agent-output H:\Projects\SomeOtherApp\.agent
 ```
 
 Run without AI planning:
@@ -199,6 +231,7 @@ type .agent\history.jsonl
 
 - `docs/architecture.md`
 - `docs/agent-workflow.md`
+- `docs/external-solution-integration.md`
 - `docs/repair-scenarios.md`
 
 ## Controlled Repair Scenarios

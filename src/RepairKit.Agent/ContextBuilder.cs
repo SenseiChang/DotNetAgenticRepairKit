@@ -10,17 +10,26 @@ public sealed class ContextBuilder
         RunSummary summary,
         CancellationToken cancellationToken = default)
     {
-        var buildOutputFile = AgentOutputPaths.GetBuildOutputFile(repoRoot, runId);
-        var testOutputFile = AgentOutputPaths.GetTestOutputFile(repoRoot, runId);
-        var contextPacketFile = AgentOutputPaths.GetContextPacketFile(repoRoot, runId);
-        var contextMetadataFile = AgentOutputPaths.GetContextMetadataFile(repoRoot, runId);
+        return await BuildAsync(RepairKitConfig.CreateUnvalidatedDefault(repoRoot), runId, summary, cancellationToken);
+    }
 
-        var buildOutput = await ReadIfExistsAsync(buildOutputFile, cancellationToken);
-        var testOutput = await ReadIfExistsAsync(testOutputFile, cancellationToken);
+    public async Task<ContextMetadata> BuildAsync(
+        RepairKitConfig config,
+        string runId,
+        RunSummary summary,
+        CancellationToken cancellationToken = default)
+    {
+        var buildOutputFile = AgentOutputPaths.GetBuildOutputFile(config, runId);
+        var testOutputFile = AgentOutputPaths.GetTestOutputFile(config, runId);
+        var contextPacketFile = AgentOutputPaths.GetContextPacketFile(config, runId);
+        var contextMetadataFile = AgentOutputPaths.GetContextMetadataFile(config, runId);
+
+        var buildOutput = Truncate(await ReadIfExistsAsync(buildOutputFile, cancellationToken), config.MaxContextCharacters);
+        var testOutput = Truncate(await ReadIfExistsAsync(testOutputFile, cancellationToken), config.MaxContextCharacters);
         var matchResult = ContextFileMatcher.Match(buildOutput + Environment.NewLine + testOutput);
 
         var packet = await CreatePacketAsync(
-            repoRoot,
+            config.ResolvedRepoRoot,
             runId,
             summary,
             buildOutput,
@@ -43,6 +52,16 @@ public sealed class ContextBuilder
         await ContextMetadataJsonSerializer.WriteAsync(contextMetadataFile, metadata);
 
         return metadata;
+    }
+
+    private static string Truncate(string value, int maxCharacters)
+    {
+        if (maxCharacters <= 0 || value.Length <= maxCharacters)
+        {
+            return value;
+        }
+
+        return value[..maxCharacters] + Environment.NewLine + "[truncated]";
     }
 
     private static async Task<string> CreatePacketAsync(
@@ -121,4 +140,3 @@ public sealed class ContextBuilder
             : string.Empty;
     }
 }
-

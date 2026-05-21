@@ -2,7 +2,7 @@ namespace RepairKit.Agent;
 
 public static class PatchPathValidator
 {
-    private static readonly string[] AllowedPrefixes =
+    public static readonly string[] DefaultAllowedPrefixes =
     [
         "src/RepairKit.Core/",
         "src/RepairKit.Web/",
@@ -10,7 +10,7 @@ public static class PatchPathValidator
         "tests/"
     ];
 
-    private static readonly string[] BlockedPrefixes =
+    public static readonly string[] DefaultBlockedPrefixes =
     [
         ".git/",
         ".agent/",
@@ -22,7 +22,7 @@ public static class PatchPathValidator
         "docs/"
     ];
 
-    private static readonly string[] BlockedTerms =
+    public static readonly string[] DefaultBlockedTerms =
     [
         ".env",
         "secret",
@@ -33,6 +33,21 @@ public static class PatchPathValidator
     ];
 
     public static IReadOnlyList<string> ValidateRelativePath(string repoRoot, string relativePath)
+    {
+        return ValidateRelativePath(
+            repoRoot,
+            relativePath,
+            DefaultAllowedPrefixes,
+            DefaultBlockedPrefixes,
+            DefaultBlockedTerms);
+    }
+
+    public static IReadOnlyList<string> ValidateRelativePath(
+        string repoRoot,
+        string relativePath,
+        IReadOnlyList<string> allowedPrefixes,
+        IReadOnlyList<string> blockedPrefixes,
+        IReadOnlyList<string> blockedTerms)
     {
         var errors = new List<string>();
 
@@ -54,7 +69,7 @@ public static class PatchPathValidator
             errors.Add($"Path '{relativePath}' must not traverse upward using '..'.");
         }
 
-        foreach (var blockedPrefix in BlockedPrefixes)
+        foreach (var blockedPrefix in blockedPrefixes.Select(NormalizeBlockedPrefix))
         {
             if (normalizedPath.StartsWith(blockedPrefix, StringComparison.OrdinalIgnoreCase))
             {
@@ -62,7 +77,7 @@ public static class PatchPathValidator
             }
         }
 
-        foreach (var blockedTerm in BlockedTerms)
+        foreach (var blockedTerm in blockedTerms)
         {
             if (normalizedPath.Contains(blockedTerm, StringComparison.OrdinalIgnoreCase))
             {
@@ -70,7 +85,7 @@ public static class PatchPathValidator
             }
         }
 
-        if (!AllowedPrefixes.Any(prefix => normalizedPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        if (!allowedPrefixes.Any(prefix => normalizedPath.StartsWith(NormalizeAllowedPrefix(prefix), StringComparison.OrdinalIgnoreCase)))
         {
             errors.Add($"Path '{relativePath}' is not under an allowed source or test directory.");
         }
@@ -89,5 +104,15 @@ public static class PatchPathValidator
 
         return errors;
     }
-}
 
+    private static string NormalizeAllowedPrefix(string prefix)
+    {
+        return prefix.Replace('\\', '/').TrimStart('/');
+    }
+
+    private static string NormalizeBlockedPrefix(string prefix)
+    {
+        var normalized = prefix.Replace('\\', '/').TrimStart('/');
+        return normalized.EndsWith('/') ? normalized : normalized + "/";
+    }
+}

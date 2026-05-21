@@ -1,0 +1,31 @@
+{
+  "solutionPath": "H:/Projects/SomeOtherApp/SomeOtherApp.sln",
+  "repoRoot": "H:/Projects/SomeOtherApp",
+  "agentOutputPath": "H:/Projects/SomeOtherApp/.agent",
+  "buildCommand": "dotnet build \"{solutionPath}\" --no-incremental -p:OutputPath=\"{buildOutputPath}\"",
+  "testCommand": "dotnet test \"{solutionPath}\" --no-build -p:OutputPath=\"{buildOutputPath}\"",
+  "gitDiffCommand": "git diff -- src tests",
+  "allowedEditPaths": [
+    "src/",
+    "tests/"
+  ],
+  "blockedPathSegments": [
+    ".git",
+    ".agent",
+    "bin",
+    "obj",
+    ".vs",
+    "node_modules"
+  ],
+  "blockedPathTerms": [
+    ".env",
+    "secret",
+    "token",
+    "password",
+    "key",
+    "appsettings"
+  ],
+  "maxContextCharacters": 80000,
+  "recentHistoryLimit": 20
+}
+

@@ -7,38 +7,39 @@ public static class AgentProgram
         try
         {
             var runOptions = AgentRunOptions.Parse(args);
-            var repoRoot = RepoRootLocator.FindRepoRoot(Directory.GetCurrentDirectory());
+            var detectedRepoRoot = RepoRootLocator.FindRepoRoot(Directory.GetCurrentDirectory());
+            var config = RepairKitConfigResolver.Load(detectedRepoRoot, runOptions);
+            var repoRoot = config.ResolvedRepoRoot;
             var runId = RunIdGenerator.Create();
-            var outputFolder = AgentOutputPaths.GetRunFolder(repoRoot, runId);
+            var outputFolder = AgentOutputPaths.GetRunFolder(config, runId);
 
             Directory.CreateDirectory(outputFolder);
 
             var runner = new CommandRunner();
             var startedUtc = DateTime.UtcNow;
-            var buildArtifactsFolder = AgentOutputPaths.GetBuildArtifactsFolder(repoRoot, runId);
+            var buildArtifactsFolder = AgentOutputPaths.GetBuildArtifactsFolder(config, runId);
             Directory.CreateDirectory(buildArtifactsFolder);
 
-            var solutionPath = Path.Combine(repoRoot, RepoRootLocator.SolutionFileName);
             var buildOutputPath = Path.EndsInDirectorySeparator(buildArtifactsFolder)
                 ? buildArtifactsFolder
                 : buildArtifactsFolder + Path.DirectorySeparatorChar;
-            var outputPathArgument = $"-p:OutputPath=\"{buildOutputPath}\"";
+            var buildCommand = CommandTemplate.Expand(config.BuildCommand, config, outputFolder, buildOutputPath);
+            var testCommand = CommandTemplate.Expand(config.TestCommand, config, outputFolder, buildOutputPath);
+            var (buildFileName, buildArguments) = CommandTemplate.Split(buildCommand);
+            var (testFileName, testArguments) = CommandTemplate.Split(testCommand);
 
-            var buildArguments = $"build \"{solutionPath}\" --no-incremental {outputPathArgument}";
-            var testArguments = $"test \"{solutionPath}\" --no-build {outputPathArgument}";
-
-            var buildResult = await runner.RunAsync("dotnet", buildArguments, repoRoot);
+            var buildResult = await runner.RunAsync(buildFileName, buildArguments, repoRoot);
             CommandResult? testResult = null;
 
-            var buildOutputFile = AgentOutputPaths.GetBuildOutputFile(repoRoot, runId);
-            var outputFile = AgentOutputPaths.GetTestOutputFile(repoRoot, runId);
-            var summaryFile = AgentOutputPaths.GetRunSummaryFile(repoRoot, runId);
+            var buildOutputFile = AgentOutputPaths.GetBuildOutputFile(config, runId);
+            var outputFile = AgentOutputPaths.GetTestOutputFile(config, runId);
+            var summaryFile = AgentOutputPaths.GetRunSummaryFile(config, runId);
 
             await File.WriteAllTextAsync(buildOutputFile, TestOutputFormatter.Format(buildResult));
 
             if (buildResult.ExitCode == 0)
             {
-                testResult = await runner.RunAsync("dotnet", testArguments, repoRoot);
+                testResult = await runner.RunAsync(testFileName, testArguments, repoRoot);
                 await File.WriteAllTextAsync(outputFile, TestOutputFormatter.Format(testResult));
             }
             else
@@ -56,7 +57,7 @@ public static class AgentProgram
                 repoRoot,
                 buildResult,
                 testResult,
-                $"dotnet {testArguments}",
+                testCommand,
                 buildOutputFile,
                 outputFile);
 
@@ -73,15 +74,15 @@ public static class AgentProgram
             if (!summary.OverallPassed)
             {
                 var contextBuilder = new ContextBuilder();
-                await contextBuilder.BuildAsync(repoRoot, runId, summary);
+                await contextBuilder.BuildAsync(config, runId, summary);
                 contextGenerated = true;
-                await new RelatedRunMemory().AppendToContextPacketAsync(repoRoot, runId);
+                await new RelatedRunMemory().AppendToContextPacketAsync(config, runId);
 
                 if (!runOptions.NoAi)
                 {
                     try
                     {
-                        var contextPacketPath = AgentOutputPaths.GetContextPacketFile(repoRoot, runId);
+                        var contextPacketPath = AgentOutputPaths.GetContextPacketFile(config, runId);
                         var contextPacket = await File.ReadAllTextAsync(contextPacketPath);
                         var openRouterOptions = OpenRouterOptions.FromEnvironment(requireApiKey: true);
                         var planner = new OpenRouterRepairPlanner(new HttpClient(), openRouterOptions);
@@ -103,13 +104,13 @@ public static class AgentProgram
                         {
                             var patchApplier = new PatchApplier();
                             patchApplicationResult = await patchApplier.ApplyAsync(
-                                repoRoot,
+                                config,
                                 runId,
                                 CancellationToken.None);
 
                             var gitDiffCapture = new GitDiffCapture(new CommandRunner());
-                            gitDiffResult = await gitDiffCapture.CaptureAsync(repoRoot, runId);
-                            repairReportPath = await new RepairReportWriter().WriteAsync(repoRoot, runId);
+                            gitDiffResult = await gitDiffCapture.CaptureAsync(config, runId);
+                            repairReportPath = await new RepairReportWriter().WriteAsync(config, runId);
                         }
                     }
                     catch (Exception ex)
@@ -124,7 +125,7 @@ public static class AgentProgram
 
             PrintSummary(
                 summary,
-                AgentOutputPaths.GetRelativeRunFolder(runId),
+                Path.GetRelativePath(repoRoot, outputFolder),
                 runOptions,
                 repairPlanResult,
                 approvalDecision,
@@ -134,7 +135,7 @@ public static class AgentProgram
                 aiError);
 
             await TryAppendHistoryAsync(
-                repoRoot,
+                config,
                 summary,
                 runOptions,
                 contextGenerated,
@@ -280,7 +281,7 @@ public static class AgentProgram
     }
 
     private static async Task TryAppendHistoryAsync(
-        string repoRoot,
+        RepairKitConfig config,
         RunSummary summary,
         AgentRunOptions runOptions,
         bool contextGenerated,
@@ -304,7 +305,7 @@ public static class AgentProgram
                 repairReportPath,
                 aiError);
 
-            await new AgentRunHistoryWriter().AppendAsync(repoRoot, entry);
+            await new AgentRunHistoryWriter().AppendAsync(config, entry);
             Console.WriteLine($"History: {Path.Combine(".agent", "history.jsonl")}");
         }
         catch (Exception ex)

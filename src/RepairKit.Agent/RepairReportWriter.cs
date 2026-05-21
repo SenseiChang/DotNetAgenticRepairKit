@@ -16,14 +16,22 @@ public sealed class RepairReportWriter
         string runId,
         CancellationToken cancellationToken = default)
     {
-        var runFolder = AgentOutputPaths.GetRunFolder(repoRoot, runId);
-        var reportPath = AgentOutputPaths.GetRepairReportFile(repoRoot, runId);
-        var summary = await ReadJsonAsync<RunSummary>(AgentOutputPaths.GetRunSummaryFile(repoRoot, runId), cancellationToken);
+        return await WriteAsync(RepairKitConfig.CreateUnvalidatedDefault(repoRoot), runId, cancellationToken);
+    }
+
+    public async Task<string> WriteAsync(
+        RepairKitConfig config,
+        string runId,
+        CancellationToken cancellationToken = default)
+    {
+        var runFolder = AgentOutputPaths.GetRunFolder(config, runId);
+        var reportPath = AgentOutputPaths.GetRepairReportFile(config, runId);
+        var summary = await ReadJsonAsync<RunSummary>(AgentOutputPaths.GetRunSummaryFile(config, runId), cancellationToken);
         var plan = await ReadJsonAsync<RepairPlan>(AgentOutputPaths.GetRepairPlanFile(runFolder), cancellationToken);
         var approval = await ReadJsonAsync<RepairApprovalDecision>(AgentOutputPaths.GetApprovalDecisionFile(runFolder), cancellationToken);
         var patch = await ReadJsonAsync<PatchApplicationResult>(AgentOutputPaths.GetPatchApplicationFile(runFolder), cancellationToken);
-        var diffPath = AgentOutputPaths.GetGitDiffFile(repoRoot, runId);
-        var diffErrorPath = AgentOutputPaths.GetGitDiffErrorFile(repoRoot, runId);
+        var diffPath = AgentOutputPaths.GetGitDiffFile(config, runId);
+        var diffErrorPath = AgentOutputPaths.GetGitDiffErrorFile(config, runId);
 
         var builder = new StringBuilder();
         builder.AppendLine("# Repair Report");
@@ -155,4 +163,3 @@ public sealed class RepairReportWriter
         }
     }
 }
-

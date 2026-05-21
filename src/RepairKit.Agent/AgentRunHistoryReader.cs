@@ -14,15 +14,34 @@ public sealed class AgentRunHistoryReader
         int limit,
         CancellationToken cancellationToken = default)
     {
-        var historyFile = AgentOutputPaths.GetHistoryFile(repoRoot);
+        return await ReadRecentCoreAsync(AgentOutputPaths.GetHistoryFile(repoRoot), limit, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AgentRunHistoryEntry>> ReadRecentAsync(
+        RepairKitConfig config,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        return await ReadRecentCoreAsync(AgentOutputPaths.GetHistoryFile(config), limit, cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<AgentRunHistoryEntry>> ReadRecentCoreAsync(
+        string historyFile,
+        int limit,
+        CancellationToken cancellationToken)
+    {
         if (!File.Exists(historyFile) || limit <= 0)
         {
             return [];
         }
 
         var entries = new List<AgentRunHistoryEntry>();
-        foreach (var line in await File.ReadAllLinesAsync(historyFile, cancellationToken))
+        var firstLine = true;
+        foreach (var rawLine in await File.ReadAllLinesAsync(historyFile, cancellationToken))
         {
+            var line = firstLine ? rawLine.TrimStart('\uFEFF') : rawLine;
+            firstLine = false;
+
             if (string.IsNullOrWhiteSpace(line))
             {
                 continue;
@@ -48,4 +67,3 @@ public sealed class AgentRunHistoryReader
             .ToArray();
     }
 }
-

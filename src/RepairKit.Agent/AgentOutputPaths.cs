@@ -12,6 +12,16 @@ public static class AgentOutputPaths
         return Path.Combine(repoRoot, ".agent");
     }
 
+    public static string GetAgentFolder(RepairKitConfig config)
+    {
+        return config.ResolvedAgentOutputPath;
+    }
+
+    public static string GetRunFolder(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetAgentFolder(config), "runs", runId);
+    }
+
     public static string GetRelativeRunFolder(string runId)
     {
         return Path.Combine(".agent", "runs", runId);
@@ -30,6 +40,36 @@ public static class AgentOutputPaths
     public static string GetBuildArtifactsFolder(string repoRoot, string runId)
     {
         return Path.Combine(GetRunFolder(repoRoot, runId), "build-bin");
+    }
+
+    public static string GetBuildArtifactsFolder(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "build-bin");
+    }
+
+    public static string GetBuildOutputFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "build-output.txt");
+    }
+
+    public static string GetTestOutputFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "test-output.txt");
+    }
+
+    public static string GetRunSummaryFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "run-summary.json");
+    }
+
+    public static string GetContextPacketFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "context-packet.md");
+    }
+
+    public static string GetContextMetadataFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "context-metadata.json");
     }
 
     public static string GetRunSummaryFile(string repoRoot, string runId)
@@ -77,6 +117,18 @@ public static class AgentOutputPaths
         return Path.Combine(GetRunFolder(repoRoot, runId), "backups");
     }
 
+    public static string GetBackupsFolder(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "backups");
+    }
+
+    public static string GetBackupFile(RepairKitConfig config, string runId, string relativePath)
+    {
+        return Path.Combine(
+            GetBackupsFolder(config, runId),
+            relativePath.Replace('/', Path.DirectorySeparatorChar));
+    }
+
     public static string GetBackupFile(string repoRoot, string runId, string relativePath)
     {
         return Path.Combine(
@@ -87,6 +139,21 @@ public static class AgentOutputPaths
     public static string GetValidationArtifactsFolder(string repoRoot, string runId)
     {
         return Path.Combine(GetRunFolder(repoRoot, runId), "validation-bin");
+    }
+
+    public static string GetValidationArtifactsFolder(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "validation-bin");
+    }
+
+    public static string GetValidationBuildOutputFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "validation-build-output.txt");
+    }
+
+    public static string GetValidationTestOutputFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "validation-test-output.txt");
     }
 
     public static string GetValidationBuildOutputFile(string repoRoot, string runId)
@@ -114,6 +181,21 @@ public static class AgentOutputPaths
         return Path.Combine(GetRunFolder(repoRoot, runId), "git-diff.patch");
     }
 
+    public static string GetGitDiffFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "git-diff.patch");
+    }
+
+    public static string GetGitDiffErrorFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "git-diff-error.txt");
+    }
+
+    public static string GetRepairReportFile(RepairKitConfig config, string runId)
+    {
+        return Path.Combine(GetRunFolder(config, runId), "repair-report.md");
+    }
+
     public static string GetGitDiffErrorFile(string repoRoot, string runId)
     {
         return Path.Combine(GetRunFolder(repoRoot, runId), "git-diff-error.txt");
@@ -127,5 +209,10 @@ public static class AgentOutputPaths
     public static string GetHistoryFile(string repoRoot)
     {
         return Path.Combine(GetAgentFolder(repoRoot), "history.jsonl");
+    }
+
+    public static string GetHistoryFile(RepairKitConfig config)
+    {
+        return Path.Combine(GetAgentFolder(config), "history.jsonl");
     }
 }

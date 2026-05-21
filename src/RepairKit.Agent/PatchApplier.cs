@@ -14,10 +14,19 @@ public sealed class PatchApplier
         string runId,
         CancellationToken cancellationToken = default)
     {
-        var runFolder = AgentOutputPaths.GetRunFolder(repoRoot, runId);
+        return await ApplyAsync(RepairKitConfig.CreateUnvalidatedDefault(repoRoot), runId, cancellationToken);
+    }
+
+    public async Task<PatchApplicationResult> ApplyAsync(
+        RepairKitConfig config,
+        string runId,
+        CancellationToken cancellationToken = default)
+    {
+        var repoRoot = config.ResolvedRepoRoot;
+        var runFolder = AgentOutputPaths.GetRunFolder(config, runId);
         var resultPath = AgentOutputPaths.GetPatchApplicationFile(runFolder);
-        var validationBuildOutputFile = AgentOutputPaths.GetValidationBuildOutputFile(repoRoot, runId);
-        var validationTestOutputFile = AgentOutputPaths.GetValidationTestOutputFile(repoRoot, runId);
+        var validationBuildOutputFile = AgentOutputPaths.GetValidationBuildOutputFile(config, runId);
+        var validationTestOutputFile = AgentOutputPaths.GetValidationTestOutputFile(config, runId);
 
         try
         {
@@ -51,7 +60,7 @@ public sealed class PatchApplier
             var plan = RepairPlanJsonSerializer.Parse(
                 await File.ReadAllTextAsync(planPath, cancellationToken));
 
-            var validationErrors = ValidatePlanForPatch(repoRoot, plan).ToArray();
+            var validationErrors = ValidatePlanForPatch(config, plan).ToArray();
             if (validationErrors.Length > 0)
             {
                 return await WriteSkippedAsync(
@@ -61,7 +70,7 @@ public sealed class PatchApplier
 
             var changedFiles = plan.Changes.Select(change => Normalize(change.FilePath)).ToArray();
             var backupFiles = changedFiles
-                .Select(path => AgentOutputPaths.GetBackupFile(repoRoot, runId, path))
+                .Select(path => AgentOutputPaths.GetBackupFile(config, runId, path))
                 .ToArray();
 
             foreach (var changedFile in changedFiles)
@@ -113,7 +122,7 @@ public sealed class PatchApplier
                     validationTestOutputFile));
             }
 
-            var validation = await RunValidationAsync(repoRoot, runId, cancellationToken);
+            var validation = await RunValidationAsync(config, runId, cancellationToken);
 
             return await WriteResultAsync(new PatchApplicationResult(
                 runId,
@@ -172,11 +181,16 @@ public sealed class PatchApplier
         return AgentOutputPaths.GetBackupFile(repoRoot, runId, Normalize(relativePath));
     }
 
-    private static IEnumerable<string> ValidatePlanForPatch(string repoRoot, RepairPlan plan)
+    private static IEnumerable<string> ValidatePlanForPatch(RepairKitConfig config, RepairPlan plan)
     {
         foreach (var change in plan.Changes)
         {
-            foreach (var error in PatchPathValidator.ValidateRelativePath(repoRoot, change.FilePath))
+            foreach (var error in PatchPathValidator.ValidateRelativePath(
+                config.ResolvedRepoRoot,
+                change.FilePath,
+                config.AllowedEditPaths,
+                config.BlockedPathSegments,
+                config.BlockedPathTerms))
             {
                 yield return error;
             }
@@ -189,35 +203,38 @@ public sealed class PatchApplier
     }
 
     private static async Task<(CommandResult BuildResult, CommandResult? TestResult)> RunValidationAsync(
-        string repoRoot,
+        RepairKitConfig config,
         string runId,
         CancellationToken cancellationToken)
     {
-        var validationArtifactsFolder = AgentOutputPaths.GetValidationArtifactsFolder(repoRoot, runId);
+        var repoRoot = config.ResolvedRepoRoot;
+        var validationArtifactsFolder = AgentOutputPaths.GetValidationArtifactsFolder(config, runId);
         Directory.CreateDirectory(validationArtifactsFolder);
 
-        var solutionPath = Path.Combine(repoRoot, RepoRootLocator.SolutionFileName);
         var validationOutputPath = Path.EndsInDirectorySeparator(validationArtifactsFolder)
             ? validationArtifactsFolder
             : validationArtifactsFolder + Path.DirectorySeparatorChar;
-        var outputPathArgument = $"-p:OutputPath=\"{validationOutputPath}\"";
+        var buildCommand = CommandTemplate.Expand(config.BuildCommand, config, AgentOutputPaths.GetRunFolder(config, runId), validationOutputPath);
+        var testCommand = CommandTemplate.Expand(config.TestCommand, config, AgentOutputPaths.GetRunFolder(config, runId), validationOutputPath);
+        var (buildFileName, buildArguments) = CommandTemplate.Split(buildCommand);
+        var (testFileName, testArguments) = CommandTemplate.Split(testCommand);
         var runner = new CommandRunner();
 
         var buildResult = await runner.RunAsync(
-            "dotnet",
-            $"build \"{solutionPath}\" --no-incremental {outputPathArgument}",
+            buildFileName,
+            buildArguments,
             repoRoot,
             cancellationToken);
 
         await File.WriteAllTextAsync(
-            AgentOutputPaths.GetValidationBuildOutputFile(repoRoot, runId),
+                AgentOutputPaths.GetValidationBuildOutputFile(config, runId),
             TestOutputFormatter.Format(buildResult),
             cancellationToken);
 
         if (buildResult.ExitCode != 0)
         {
             await File.WriteAllTextAsync(
-                AgentOutputPaths.GetValidationTestOutputFile(repoRoot, runId),
+                AgentOutputPaths.GetValidationTestOutputFile(config, runId),
                 "Validation tests were not run because validation build failed." + Environment.NewLine,
                 cancellationToken);
 
@@ -225,13 +242,13 @@ public sealed class PatchApplier
         }
 
         var testResult = await runner.RunAsync(
-            "dotnet",
-            $"test \"{solutionPath}\" --no-build {outputPathArgument}",
+            testFileName,
+            testArguments,
             repoRoot,
             cancellationToken);
 
         await File.WriteAllTextAsync(
-            AgentOutputPaths.GetValidationTestOutputFile(repoRoot, runId),
+            AgentOutputPaths.GetValidationTestOutputFile(config, runId),
             TestOutputFormatter.Format(testResult),
             cancellationToken);
 
@@ -248,4 +265,3 @@ public sealed class PatchApplier
         return relativePath.Replace('\\', '/');
     }
 }
-

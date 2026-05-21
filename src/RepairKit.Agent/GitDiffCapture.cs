@@ -14,15 +14,24 @@ public sealed class GitDiffCapture
         string runId,
         CancellationToken cancellationToken = default)
     {
-        var diffFile = AgentOutputPaths.GetGitDiffFile(repoRoot, runId);
-        var errorFile = AgentOutputPaths.GetGitDiffErrorFile(repoRoot, runId);
+        return await CaptureAsync(RepairKitConfig.CreateUnvalidatedDefault(repoRoot), runId, cancellationToken);
+    }
+
+    public async Task<GitDiffCaptureResult> CaptureAsync(
+        RepairKitConfig config,
+        string runId,
+        CancellationToken cancellationToken = default)
+    {
+        var diffFile = AgentOutputPaths.GetGitDiffFile(config, runId);
+        var errorFile = AgentOutputPaths.GetGitDiffErrorFile(config, runId);
 
         try
         {
+            var (fileName, arguments) = CommandTemplate.Split(config.GitDiffCommand);
             var result = await _commandRunner.RunAsync(
-                "git",
-                "diff -- src tests",
-                repoRoot,
+                fileName,
+                arguments,
+                config.ResolvedRepoRoot,
                 cancellationToken);
 
             if (result.ExitCode == 0)
@@ -43,4 +52,3 @@ public sealed class GitDiffCapture
         }
     }
 }
-

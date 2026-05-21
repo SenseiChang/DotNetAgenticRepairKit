@@ -1,0 +1,35 @@
+{
+  "solutionPath": "DotNetAgenticRepairKit.sln",
+  "repoRoot": ".",
+  "agentOutputPath": ".agent",
+  "buildCommand": "dotnet build \"{solutionPath}\" --no-incremental -p:OutputPath=\"{buildOutputPath}\"",
+  "testCommand": "dotnet test \"{solutionPath}\" --no-build -p:OutputPath=\"{buildOutputPath}\"",
+  "gitDiffCommand": "git diff -- src tests",
+  "allowedEditPaths": [
+    "src/RepairKit.Core/",
+    "src/RepairKit.Web/",
+    "src/RepairKit.Infrastructure/",
+    "tests/"
+  ],
+  "blockedPathSegments": [
+    ".git",
+    ".agent",
+    "bin",
+    "obj",
+    ".vs",
+    "node_modules",
+    "scripts",
+    "docs"
+  ],
+  "blockedPathTerms": [
+    ".env",
+    "secret",
+    "token",
+    "password",
+    "key",
+    "appsettings"
+  ],
+  "maxContextCharacters": 80000,
+  "recentHistoryLimit": 20
+}
+

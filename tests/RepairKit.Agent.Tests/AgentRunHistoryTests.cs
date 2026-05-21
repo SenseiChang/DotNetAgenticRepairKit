@@ -48,6 +48,30 @@ public sealed class AgentRunHistoryTests : IDisposable
     }
 
     [Fact]
+    public async Task HistoryReaderHandlesBomOnFirstLine()
+    {
+        Directory.CreateDirectory(AgentOutputPaths.GetAgentFolder(_repoRoot));
+        await File.WriteAllTextAsync(
+            AgentOutputPaths.GetHistoryFile(_repoRoot),
+            "\uFEFF" + JsonSerializer.Serialize(CreateEntry("run-1")));
+
+        var entries = await new AgentRunHistoryReader().ReadRecentAsync(_repoRoot, 10);
+
+        Assert.Single(entries);
+        Assert.Equal("run-1", entries[0].RunId);
+    }
+
+    [Fact]
+    public async Task HistoryWriterDoesNotEmitBom()
+    {
+        await new AgentRunHistoryWriter().AppendAsync(_repoRoot, CreateEntry("run-1"));
+
+        var bytes = await File.ReadAllBytesAsync(AgentOutputPaths.GetHistoryFile(_repoRoot));
+
+        Assert.False(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
+    }
+
+    [Fact]
     public async Task HistoryReaderLimitsToLastNEntries()
     {
         var writer = new AgentRunHistoryWriter();
@@ -140,4 +164,3 @@ public sealed class AgentRunHistoryTests : IDisposable
             null);
     }
 }
-

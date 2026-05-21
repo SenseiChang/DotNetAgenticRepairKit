@@ -5,6 +5,8 @@ namespace RepairKit.Agent;
 
 public sealed class AgentRunHistoryWriter
 {
+    private static readonly UTF8Encoding Utf8NoBom = new(false);
+
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -22,8 +24,22 @@ public sealed class AgentRunHistoryWriter
         await File.AppendAllTextAsync(
             AgentOutputPaths.GetHistoryFile(repoRoot),
             JsonSerializer.Serialize(entry, Options) + Environment.NewLine,
-            Encoding.UTF8,
+            Utf8NoBom,
+            cancellationToken);
+    }
+
+    public async Task AppendAsync(
+        RepairKitConfig config,
+        AgentRunHistoryEntry entry,
+        CancellationToken cancellationToken = default)
+    {
+        var agentFolder = AgentOutputPaths.GetAgentFolder(config);
+        Directory.CreateDirectory(agentFolder);
+
+        await File.AppendAllTextAsync(
+            AgentOutputPaths.GetHistoryFile(config),
+            JsonSerializer.Serialize(entry, Options) + Environment.NewLine,
+            Utf8NoBom,
             cancellationToken);
     }
 }
-

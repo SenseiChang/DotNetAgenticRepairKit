@@ -25,20 +25,28 @@ public sealed class RelatedRunMemory
         string runId,
         CancellationToken cancellationToken = default)
     {
-        var metadata = await ReadContextMetadataAsync(repoRoot, runId, cancellationToken);
+        await AppendToContextPacketAsync(RepairKitConfig.CreateUnvalidatedDefault(repoRoot), runId, cancellationToken);
+    }
+
+    public async Task AppendToContextPacketAsync(
+        RepairKitConfig config,
+        string runId,
+        CancellationToken cancellationToken = default)
+    {
+        var metadata = await ReadContextMetadataAsync(config, runId, cancellationToken);
         if (metadata is null)
         {
             return;
         }
 
-        var recentEntries = await new AgentRunHistoryReader().ReadRecentAsync(repoRoot, 20, cancellationToken);
+        var recentEntries = await new AgentRunHistoryReader().ReadRecentAsync(config, config.RecentHistoryLimit, cancellationToken);
         var relatedEntries = FindRelated(metadata, recentEntries);
         if (relatedEntries.Count == 0)
         {
             return;
         }
 
-        var packetPath = AgentOutputPaths.GetContextPacketFile(repoRoot, runId);
+        var packetPath = AgentOutputPaths.GetContextPacketFile(config, runId);
         if (!File.Exists(packetPath))
         {
             return;
@@ -100,11 +108,11 @@ public sealed class RelatedRunMemory
     }
 
     private static async Task<ContextMetadata?> ReadContextMetadataAsync(
-        string repoRoot,
+        RepairKitConfig config,
         string runId,
         CancellationToken cancellationToken)
     {
-        var path = AgentOutputPaths.GetContextMetadataFile(repoRoot, runId);
+        var path = AgentOutputPaths.GetContextMetadataFile(config, runId);
         if (!File.Exists(path))
         {
             return null;
@@ -125,4 +133,3 @@ public sealed class RelatedRunMemory
         return value.HasValue ? value.Value.ToString() : "not available";
     }
 }
-

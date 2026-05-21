@@ -5,7 +5,11 @@ public sealed record AgentRunOptions(
     bool PlanOnly,
     bool ApprovePlan,
     bool RequireApproval,
-    bool NoApply)
+    bool NoApply,
+    string? ConfigPath = null,
+    string? SolutionOverride = null,
+    string? RepoRootOverride = null,
+    string? AgentOutputOverride = null)
 {
     public static AgentRunOptions Parse(string[] args)
     {
@@ -26,6 +30,33 @@ public sealed record AgentRunOptions(
         var noApply = args.Any(arg =>
             string.Equals(arg, "--no-apply", StringComparison.OrdinalIgnoreCase));
 
-        return new AgentRunOptions(noAi, planOnly, approvePlan, requireApproval, noApply);
+        return new AgentRunOptions(
+            noAi,
+            planOnly,
+            approvePlan,
+            requireApproval,
+            noApply,
+            GetOptionValue(args, "--config"),
+            GetOptionValue(args, "--solution"),
+            GetOptionValue(args, "--repo-root"),
+            GetOptionValue(args, "--agent-output"));
+    }
+
+    private static string? GetOptionValue(string[] args, string name)
+    {
+        for (var i = 0; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+            {
+                if (i + 1 >= args.Length)
+                {
+                    throw new InvalidOperationException($"{name} requires a value.");
+                }
+
+                return args[i + 1];
+            }
+        }
+
+        return null;
     }
 }
